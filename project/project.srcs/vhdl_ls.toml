@@ -1,0 +1,16 @@
+# What standard to use. This is optional and defaults to VHDL2008.
+standard = "2008"
+
+# Libraries definition
+[libraries]
+
+# Defines library xil_defaultlib
+xil_defaultlib.files = [
+  'D:\pynq\FinalProject\project\project.srcs\sources_1\new\*.vhd',
+  'D:\pynq\FinalProject\project\project.srcs\sim_1\new\*.vhd',
+]
+
+# Optional linting configuration
+[lint]
+unused = 'error' # Upgrade the 'unused' diagnostic to the 'error' severity
+unnecessary_work_library = false # Disable linting for the 'library work;' statement

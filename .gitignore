@@ -1,0 +1,6 @@
+dataset/
+
+# Ignore everything in the project folder
+project/*
+# Unignore the specific subfolders you want to keep
+!project.srcs/
