@@ -73,7 +73,8 @@ architecture Behavioral of layer_1 is
             wea          : out std_logic_vector(0 downto 0); -- Write enable signal for predict BRAM
             dina_predict : out std_logic_vector(7 downto 0); -- Data to write into predict BRAM
 
-            image_slice : in data_array(0 to 24)
+            image_slice : in data_array(0 to 24);
+            r_address_array_delayed : in address_array_layer_1(0 to 24)
         );
     end component;
 
@@ -83,6 +84,7 @@ architecture Behavioral of layer_1 is
 
     -- Signals for bram_reader
     signal r_address_array    : address_array_layer_1(0 to 24) := (others => (others => '0'));
+    signal r_address_array_delayed : address_array_layer_1(0 to 24) := (others => (others => '0'));
     signal data_out_interface : data_array(0 to 24)            := (others => (others => '0'));
     signal data_compute       : data_array(0 to 24)            := (others => (others => '0'));
 
@@ -135,7 +137,8 @@ begin
                 bias         => bias(i),
                 wea          => wea_layer_1(i),
                 dina_predict => dina_layer_1(i),
-                image_slice  => data_compute
+                image_slice  => data_compute,
+                r_address_array_delayed => r_address_array_delayed
             );
     end generate channel;
 
@@ -164,6 +167,7 @@ begin
                     col                  := 1;
                     flag_last            <= '0';
                     r_address_array      <= find_kernel_neighbors(0, 0);
+                    r_address_array_delayed <= r_address_array;
                     if start = '1' and locked = '1' then
                         start_bram_reader <= '1';
                         state             <= FIRST_READ;
@@ -173,6 +177,7 @@ begin
                     start_bram_reader <= '0';
                     if finish_bram_reader = '1' then
                         r_address_array <= find_kernel_neighbors(0, 1);
+                        r_address_array_delayed <= r_address_array;
                         addra_layer_1   <= r_address_array(12); -- Write central pixel address
                         data_compute    <= data_out_interface;
                         state           <= READ_COMPUTE;
@@ -217,6 +222,7 @@ begin
 
                     if finish_bram_reader_latch = '1' and finish_channel_latch = "111111" then
                         r_address_array <= find_kernel_neighbors(row, col);
+                        r_address_array_delayed <= r_address_array;
                         addra_layer_1   <= r_address_array(12); -- Write central pixel address
                         data_compute    <= data_out_interface;
                         if flag_last = '1' then

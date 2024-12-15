@@ -13,10 +13,11 @@ entity relu_conv_5x5 is
         start  : in  std_logic;
         finish : out std_logic;
 
-        weights        : in  kernel_array(0 to 24);
-        bias           : in  signed(31 downto 0);
-        pixels         : in  data_array(0 to 24);
-        compute_output : out std_logic_vector(7 downto 0)
+        weights         : in  kernel_array(0 to 24);
+        bias            : in  signed(31 downto 0);
+        pixels          : in  data_array(0 to 24);
+        compute_output  : out std_logic_vector(7 downto 0);
+        r_address_array : in  address_array_layer_1(0 to 24)
     );
 end relu_conv_5x5;
 
@@ -33,7 +34,7 @@ architecture Behavioral of relu_conv_5x5 is
     signal output_float_zero_point : float32;
     signal intermediate_value      : float32;
 
-    signal processed_pixels : data_array(0 to 24);
+    signal processed_pixels : kernel_array(0 to 24);
     signal weights_signal   : kernel_array(0 to 24);
 
     -- Normalize signals
@@ -41,6 +42,8 @@ architecture Behavioral of relu_conv_5x5 is
     constant output_zero_point  : unsigned(31 downto 0) := to_unsigned(0, 32);
     constant input_zero_point   : unsigned(7 downto 0)  := to_unsigned(127, 8);
     constant weights_zero_point : signed(7 downto 0)    := to_signed(0, 8);
+
+    constant padding_address : std_logic_vector(9 downto 0) := std_logic_vector(to_unsigned(784, 10));
 
 begin
     process(clkb, resetn, start)
@@ -65,10 +68,10 @@ begin
 
                 when PREPROCESS =>
                     for i in 0 to 24 loop
-                        if pixels(i) < input_zero_point then
-                            processed_pixels(i) <= to_unsigned(0, 8);
+                        if r_address_array(i) = padding_address then --fix!!! not working!!!!!!!!1
+                            processed_pixels(i) <= to_signed(0, 8);
                         else
-                            processed_pixels(i) <= pixels(i) - input_zero_point;
+                            processed_pixels(i) <= to_signed(to_integer(pixels(i)) - to_integer(input_zero_point), 8);
                         end if;
                     end loop;
                     state <= CONV;
@@ -76,7 +79,7 @@ begin
                 when CONV =>
                     -- Accumulate sum for the first 24 values
                     if index < 25 then
-                        sum   <= sum + to_signed(to_integer(processed_pixels(index)) * to_integer(weights_signal(index) - weights_zero_point), sum'length);
+                        sum   <= sum + (processed_pixels(index) * (weights_signal(index) - weights_zero_point));
                         index <= index + 1;
                     else
                         -- Add bias after the loop
