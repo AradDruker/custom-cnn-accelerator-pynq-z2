@@ -8,7 +8,7 @@ use xil_defaultlib.types_package.all;
 
 entity relu_conv_5x5 is
     Port (
-        clka   : in  std_logic;
+        clkb   : in  std_logic;
         resetn : in  std_logic;
         start  : in  std_logic;
         finish : out std_logic;
@@ -22,19 +22,9 @@ end relu_conv_5x5;
 
 architecture Behavioral of relu_conv_5x5 is
 
-    component clock_divider is
-        Port (
-            clka      : in  std_logic;
-            resetn    : in  std_logic;
-            half_clka : out std_logic
-        );
-    end component;
-
     -- Signals
     type state_type is (IDLE, PREPROCESS, CONV, NORMALIZE_RELU, DONE);
     signal state : state_type := IDLE;
-
-    signal half_clka : std_logic;
 
     signal flag                    : std_logic_vector(1 downto 0) := "00";
     signal index                   : integer                      := 0;
@@ -44,6 +34,7 @@ architecture Behavioral of relu_conv_5x5 is
     signal intermediate_value      : float32;
 
     signal processed_pixels : data_array(0 to 24);
+    signal weights_signal   : kernel_array(0 to 24);
 
     -- Normalize signals
     constant scale              : float32               := to_float(0.0019096031845096618); --effective_scale/activation_scale
@@ -52,14 +43,7 @@ architecture Behavioral of relu_conv_5x5 is
     constant weights_zero_point : signed(7 downto 0)    := to_signed(0, 8);
 
 begin
-
-        clock_divider_0 : clock_divider port map(
-            clka      => clka,
-            resetn    => resetn,
-            half_clka => half_clka
-        );
-
-    process(half_clka, resetn, start)
+    process(clkb, resetn, start)
     begin
         if resetn = '0' then
             finish <= '0';
@@ -67,14 +51,15 @@ begin
             index  <= 0;
             sum    <= (others => '0');
 
-        elsif rising_edge(half_clka) then
+        elsif rising_edge(clkb) then
             case state is
                 when IDLE =>
-                    finish <= '0';
-                    flag   <= "00";
-                    index  <= 0;
-                    sum    <= (others => '0');
-                    if start = '1' then
+                    finish         <= '0';
+                    flag           <= "00";
+                    index          <= 0;
+                    sum            <= (others => '0');
+                    weights_signal <= weights;
+                    if start = '1' and finish = '0' then
                         state <= PREPROCESS;
                     end if;
 
@@ -91,7 +76,7 @@ begin
                 when CONV =>
                     -- Accumulate sum for the first 24 values
                     if index < 25 then
-                        sum   <= sum + to_signed(to_integer(processed_pixels(index)) * to_integer(weights(index) - weights_zero_point), sum'length);
+                        sum   <= sum + to_signed(to_integer(processed_pixels(index)) * to_integer(weights_signal(index) - weights_zero_point), sum'length);
                         index <= index + 1;
                     else
                         -- Add bias after the loop

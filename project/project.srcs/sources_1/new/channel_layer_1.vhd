@@ -11,6 +11,7 @@ use xil_defaultlib.types_package.all;
 entity channel_layer_1 is
 	Port (
 		clka   : in  std_logic; -- Clock signal
+		clkb   : in  std_logic;
 		resetn : in  std_logic; -- Active-low reset signal
 		start  : in  std_logic; -- Start signal to begin operation
 		finish : out std_logic; -- finish signal for higher-level control
@@ -31,7 +32,7 @@ architecture Behavioral of channel_layer_1 is
 
 	component relu_conv_5x5 is
 		Port (
-			clka   : in  std_logic;
+			clkb   : in  std_logic;
 			resetn : in  std_logic;
 			start  : in  std_logic;
 			finish : out std_logic;
@@ -52,12 +53,12 @@ architecture Behavioral of channel_layer_1 is
 	signal start_relu_conv_5x5  : std_logic := '0';
 	signal finish_relu_conv_5x5 : std_logic := '0';
 
-	signal flag : std_logic := '0';
+	signal counter : integer range 0 to 3 := 0;
 
 begin
 
 		relu_conv_5x5_0 : relu_conv_5x5 port map(
-			clka           => clka,
+			clkb           => clkb,
 			resetn         => resetn,
 			start          => start_relu_conv_5x5,
 			finish         => finish_relu_conv_5x5,
@@ -69,20 +70,18 @@ begin
 
 	-- Process for read and write operations
 	process(clka, resetn)
-
 	begin
 		if resetn = '0' then
 			-- Reset all control signals
 			finish <= '0';
 			wea    <= "0";
-
-			flag <= '0';
+			counter <= 0;
 
 		elsif rising_edge(clka) then
 			case state is
 				when IDLE =>
 					finish <= '0';
-					flag   <= '0';
+					counter <= 0;
 					wea    <= "0"; -- Disable writing initiall
 					if start = '1' then
 						start_relu_conv_5x5 <= '1';
@@ -91,10 +90,10 @@ begin
 
 
 				when COMPUTE =>
-					if flag = '0' then
-						flag <= '1';
-					else
+					if counter = 3 then
 						start_relu_conv_5x5 <= '0';
+					else
+						counter <= counter + 1;
 					end if;
 
 					if finish_relu_conv_5x5 = '1' then
@@ -106,7 +105,7 @@ begin
 				when DONE =>
 					finish <= '1';
 					wea    <= "0"; -- Ensure no further writes
-					flag   <= '0';
+					counter   <= 0;
 					state  <= IDLE;
 
 			end case;

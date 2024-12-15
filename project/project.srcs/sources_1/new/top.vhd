@@ -8,8 +8,8 @@ use xil_defaultlib.types_package.all;
 
 entity top is
     Port (
-        clk    : in std_logic; -- Clock signal
-        resetn : in std_logic; -- Active-low reset signal
+        clk     : in  std_logic; -- 100Mhz
+        resetn  : in  std_logic; -- Active-low reset signal
 
         -- CPU -> DMA -> RTL
         s_axis_tready : out std_logic;                    -- Ready signal for input stream
@@ -26,7 +26,6 @@ entity top is
 end top;
 
 architecture Behavioral of top is
-
     -- Component instantiations
     component dma_interface is
         Port (
@@ -100,12 +99,12 @@ architecture Behavioral of top is
 
             -- Predict image memory block layer_1:
             -- Port A (Write port)
-            wea_layer_1   : in wea_array(0 to 5);            -- Write enable signal for Port A
-            addra_layer_1 : in std_logic_vector(9 downto 0); -- Address for Port A write operations
-            dina_layer_1  : in bram_data_array(0 to 5);      -- Data input for Port A write operations
-                                                             -- Port B (Read port)
-            addrb_layer_1 : in  address_array_layer_1(0 to 5);       -- Address for Port B read operations
-            doutb_layer_1 : out bram_data_array(0 to 5);     -- Data output for Port B read operations
+            wea_layer_1   : in wea_array(0 to 5);              -- Write enable signal for Port A
+            addra_layer_1 : in std_logic_vector(9 downto 0);   -- Address for Port A write operations
+            dina_layer_1  : in bram_data_array(0 to 5);        -- Data input for Port A write operations
+                                                               -- Port B (Read port)
+            addrb_layer_1 : in  address_array_layer_1(0 to 5); -- Address for Port B read operations
+            doutb_layer_1 : out bram_data_array(0 to 5);       -- Data output for Port B read operations
 
             wea_layer_2   : in wea_array(0 to 5);
             addra_layer_2 : in std_logic_vector(7 downto 0);
@@ -119,6 +118,7 @@ architecture Behavioral of top is
     component layer_1 is
         Port (
             clka   : in  std_logic; -- Clock signal
+            --clkb   : in  std_logic;
             resetn : in  std_logic; -- Active-low reset signal
             start  : in  std_logic; -- Start signal to begin operation
             finish : out std_logic; -- finish signal for higher-level control
@@ -275,7 +275,7 @@ begin
 
         -- Processing Layer 1: Performs convolution operation on the data
         layer_1_instance : layer_1 port map(
-            clka   => clk,            -- Clock
+            clka   => clk,
             resetn => resetn,         -- Reset
             start  => start_layer_1,  -- Start signal for Layer 1
             finish => finish_layer_1, -- Finish signal from Layer 1
@@ -306,7 +306,6 @@ begin
             addrb_layer_1 => addrb_layer_1, -- Read address for origin BRAM
             doutb_layer_1 => doutb_layer_1  -- Data output from origin BRAM
         );
-
     -- Control process for the top module
     process(clk, resetn)
     begin
@@ -325,9 +324,9 @@ begin
                     mode_dma                     <= '0'; -- Read mode
                     finish_dma_interface_latched <= '0';
                     finish_rom_reader_latched    <= '0';
-                    start_dma_interface          <= '1';
-                    start_rom_reader             <= '1';
-                    state                        <= WAIT_INPUT_READ;
+                    start_dma_interface <= '1';
+                    start_rom_reader    <= '1';
+                    state               <= WAIT_INPUT_READ;
 
                 when WAIT_INPUT_READ =>
                     -- Wait for DMA and ROM reader to finish

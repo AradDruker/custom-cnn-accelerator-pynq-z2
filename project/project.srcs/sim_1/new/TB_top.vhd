@@ -27,7 +27,7 @@ architecture Behavioral of TB_top is
 
     signal clk: std_logic := '0';
     signal resetn: std_logic := '1';
-    
+
     signal in_tready: std_logic := '0';
     signal in_tlast: std_logic := '0';
     signal in_tvalid: std_logic := '0';
@@ -55,11 +55,11 @@ U1: top port map(
         m_axis_tvalid => out_tvalid,
         m_axis_tdata => out_tdata    
     );
-    
-    
+      
     clk_process: process
     begin
         while true loop
+            -- Generate 100 MHz clock
             clk <= '0';
             wait for CLK_PERIOD / 2;
             clk <= '1';
@@ -71,7 +71,6 @@ U1: top port map(
     begin
         resetn <= '0'; wait for 20ns;
         resetn <= '1';
-
         wait until in_tready = '1';
         in_tvalid <= '1';
         for counter in 0 to 783 loop

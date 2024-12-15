@@ -20,7 +20,7 @@ entity layer_1 is
         bias    : in bais_array(0 to 5);    -- Bias to be added after convolution
 
         -- Predict image (write to Port A of BRAM)
-        wea_layer_1           : out wea_array(0 to 5);            -- Write enable signal for predict BRAM
+        wea_layer_1   : out wea_array(0 to 5);            -- Write enable signal for predict BRAM
         addra_layer_1 : out std_logic_vector(9 downto 0); -- Write address for predict BRAM
         dina_layer_1  : out bram_data_array(0 to 5);      -- Data to write into predict BRAM
 
@@ -33,6 +33,15 @@ end layer_1;
 -- Architecture definition
 architecture Behavioral of layer_1 is
 
+    component clk_wiz_0 is
+        Port (
+            clk_in1  : in  std_logic;
+            resetn   : in  std_logic;
+            clk_out1 : out std_logic;
+            locked : out std_logic
+        );
+    end component;
+
     -- Component declaration for bram_reader
     -- Reads a 5x5 neighborhood from the origin image BRAM based on the input address array
     component bram_reader is
@@ -42,16 +51,17 @@ architecture Behavioral of layer_1 is
             start  : in  std_logic; -- Start signal for the bram_reader
             finish : out std_logic; -- Finish signal indicating operation is complete
 
-            r_address_array    : in  address_array_layer_1(0 to 24);       -- Input array of addresses for 5x5 neighborhood
-            r_address          : out std_logic_vector(9 downto 0); -- Current address sent to BRAM
-            data_in_bram       : in  std_logic_vector(7 downto 0); -- Data input from BRAM
-            data_out_interface : out data_array(0 to 24)           -- Output array with 5x5 neighborhood data
+            r_address_array    : in  address_array_layer_1(0 to 24); -- Input array of addresses for 5x5 neighborhood
+            r_address          : out std_logic_vector(9 downto 0);   -- Current address sent to BRAM
+            data_in_bram       : in  std_logic_vector(7 downto 0);   -- Data input from BRAM
+            data_out_interface : out data_array(0 to 24)             -- Output array with 5x5 neighborhood data
         );
     end component;
 
     component channel_layer_1 is
         Port (
             clka   : in  std_logic; -- Clock signal
+            clkb   : in  std_logic;
             resetn : in  std_logic; -- Active-low reset signal
             start  : in  std_logic; -- Start signal to begin operation
             finish : out std_logic; -- finish signal for higher-level control
@@ -73,8 +83,8 @@ architecture Behavioral of layer_1 is
 
     -- Signals for bram_reader
     signal r_address_array    : address_array_layer_1(0 to 24) := (others => (others => '0'));
-    signal data_out_interface : data_array(0 to 24)    := (others => (others => '0'));
-    signal data_compute       : data_array(0 to 24)    := (others => (others => '0'));
+    signal data_out_interface : data_array(0 to 24)            := (others => (others => '0'));
+    signal data_compute       : data_array(0 to 24)            := (others => (others => '0'));
 
     signal start_bram_reader  : std_logic := '0';
     signal finish_bram_reader : std_logic := '0';
@@ -89,7 +99,17 @@ architecture Behavioral of layer_1 is
 
     signal flag_last : std_logic := '0';
 
+    signal clkb: std_logic;
+    signal locked: std_logic;
+
 begin
+
+        clkb_0 : clk_wiz_0 port map(
+            clk_in1  => clka,
+            resetn   => resetn,
+            clk_out1 => clkb,
+            locked   => locked
+        );
 
         -- Instantiation of bram_reader
         -- This module reads a 5x5 kernel from the origin image BRAM
@@ -107,6 +127,7 @@ begin
     channel : for i in 0 to 5 generate
             instance : channel_layer_1 port map(
                 clka         => clka,
+                clkb         => clkb,
                 resetn       => resetn,
                 start        => start_channel,
                 finish       => finish_channel(i),
@@ -143,7 +164,7 @@ begin
                     col                  := 1;
                     flag_last            <= '0';
                     r_address_array      <= find_kernel_neighbors(0, 0);
-                    if start = '1' then
+                    if start = '1' and locked = '1' then
                         start_bram_reader <= '1';
                         state             <= FIRST_READ;
                     end if;
@@ -181,7 +202,6 @@ begin
 
                 when WAIT_READ_COMPUTE =>
                     -- Wait for next read operation to complete
-
                     start_bram_reader <= '0';
                     start_channel     <= '0';
 
