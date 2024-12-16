@@ -1,10 +1,6 @@
 dataset/
+project/*
+!project/exported_project/
 /Lenet5/image_output.csv
 /Lenet5/pool1_output.csv
 /Lenet5/relu1_output.csv
-/Lenet5/lenetV5.pth
-
-project/
-!project/project.srcs/sources_1/new/**
-!project/project.srcs/sim_1/new/**
-LeNet5/Untitled.png
