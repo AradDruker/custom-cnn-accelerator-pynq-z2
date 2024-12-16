@@ -1,6 +1,5 @@
 dataset/
-project/*
-!project/exported_project/
+project/
 /Lenet5/image_output.csv
 /Lenet5/pool1_output.csv
 /Lenet5/relu1_output.csv
