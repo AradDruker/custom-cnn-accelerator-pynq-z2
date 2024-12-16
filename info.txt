@@ -1,4 +1,4 @@
-dataset classes:
+dataset classes = 33:
 0-9
 (
 )
@@ -25,7 +25,7 @@ y
 z
 tan
 
-lenetv5 flow:
+Custom model flow - LenetV5 variant:
 
 Input Layer (28x28 grayscale image)
         |
@@ -75,4 +75,4 @@ Fully Connected Layer 2
         |
         v
 Output Layer
-    - Neurons: 34 (for classification into 34 classes)
+    - Neurons: 34 (for classification into 33 classes)
