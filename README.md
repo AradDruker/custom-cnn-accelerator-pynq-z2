@@ -8,15 +8,14 @@ This project aims to design and implement a **Custom Deep Learning Processing Un
 
 - **Custom DPU Design**: Tailored for the PYNQ Z2 FPGA.
 - **Integration with AXI Interface**: Ensuring seamless communication between the processing system and the FPGA fabric.
-- **Neural Network Acceleration**: Focused on efficient inference for lightweight neural networks such as LeNet-5.
+- **Neural Network Acceleration**: Focused on efficient inference for the lightweight neural network LeNet-5.
 - **Support for Quantized Models**: Leveraging model quantization for reduced resource usage.
 
 ## Goals
 
 1. Design a custom hardware module for matrix multiplication, convolution, and activation functions.
 2. Implement AXI-based communication for efficient data transfer between Python code running on the ARM processor and the FPGA.
-3. Integrate the DPU into the PYNQ framework to enable easy deployment and testing.
-4. Evaluate the performance in terms of speedup and resource utilization compared to software-based implementations.
+3. Evaluate the performance in terms of speedup and resource utilization compared to software-based implementations.
 
 ## Work in Progress
 
