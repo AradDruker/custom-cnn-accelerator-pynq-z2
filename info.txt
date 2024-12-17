@@ -30,7 +30,7 @@ Custom model flow - LenetV5 variant:
 Input Layer (28x28 grayscale image)
         |
         v
-Convolutional Layer 1
+Convolution: Layer 1
     - Filters: 6
     - Kernel Size: 5x5
     - Stride: 1
@@ -39,13 +39,13 @@ Convolutional Layer 1
     - Output: 28x28x6
         |
         v
-Subsampling Layer 1 (Max Pooling)
+Subsampling: Layer 2 (Max Pooling)
     - Pool Size: 2x2
     - Stride: 2
     - Output: 14x14x6
         |
         v
-Convolutional Layer 2
+Convolution: Layer 3
     - Filters: 16
     - Kernel Size: 5x5
     - Stride: 1
@@ -54,7 +54,7 @@ Convolutional Layer 2
     - Output: 10x10x16
         |
         v
-Subsampling Layer 2 (Max Pooling)
+Subsampling: Layer 4 (Max Pooling)
     - Pool Size: 2x2
     - Stride: 2
     - Output: 5x5x16
@@ -64,12 +64,12 @@ Flatten Layer
     - Output: 400
         |
         v
-Fully Connected Layer 1
+F.C: Layer 5
     - Neurons: 120
     - Activation: ReLU
         |
         v
-Fully Connected Layer 2
+F.C: Layer 6
     - Neurons: 84
     - Activation: ReLU
         |
