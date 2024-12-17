@@ -183,7 +183,7 @@
 						end loop;
 
 						if finish_bram_reader_latch = '1' and finish_channel_latch = "111111" then
-							r_address_array <= find_maxpool_kernel_neighbors(row, col);
+							r_address_array <= find_maxpool_kernel_neighbors(row, col, 28, 28);
 							addra_layer_2   <= std_logic_vector(to_unsigned(address_index,8)); -- Write central pixel address
 							address_index   <= address_index + 1;
 							data_compute    <= data_out_interface;

@@ -8,8 +8,8 @@ use xil_defaultlib.types_package.all;
 
 entity top is
     Port (
-        clk     : in  std_logic; -- 100Mhz
-        resetn  : in  std_logic; -- Active-low reset signal
+        clk    : in std_logic; -- 100Mhz
+        resetn : in std_logic; -- Active-low reset signal
 
         -- CPU -> DMA -> RTL
         s_axis_tready : out std_logic;                    -- Ready signal for input stream
@@ -58,29 +58,17 @@ architecture Behavioral of top is
 
     component rom_reader is
         Port (
-            clk    : in  std_logic; -- Clock signal
-            resetn : in  std_logic; -- Active-low reset signal
-            start  : in  std_logic; -- Start signal to initiate read operation
-            finish : out std_logic; -- Signal indicating the operation is complete
+            clk          : in  std_logic; -- Clock signal
+            resetn       : in  std_logic; -- Active-low reset signal
+            start_conv_1 : in  std_logic; -- Start signal to initiate read operation
+            start_conv_2 : in  std_logic; -- Start signal to initiate read operation
+            finish       : out std_logic; -- Signal indicating the operation is complete
 
-            -- Outputs for weights and biases
-            weights_1 : out kernel_array(0 to 24); -- Weights from ROM_0 (Port A)
-            bias_1    : out signed(31 downto 0);   -- Bias from ROM_0 (Port A)
+            weights_conv_1 : out weights_array(0 to 5);
+            bias_conv_1    : out bais_array(0 to 5);
 
-            weights_2 : out kernel_array(0 to 24); -- Weights from ROM_0 (Port B)
-            bias_2    : out signed(31 downto 0);   -- Bias from ROM_0 (Port B)
-
-            weights_3 : out kernel_array(0 to 24); -- Weights from ROM_1 (Port A)
-            bias_3    : out signed(31 downto 0);   -- Bias from ROM_1 (Port A)
-
-            weights_4 : out kernel_array(0 to 24); -- Weights from ROM_1 (Port B)
-            bias_4    : out signed(31 downto 0);   -- Bias from ROM_1 (Port B)
-
-            weights_5 : out kernel_array(0 to 24); -- Weights from ROM_2 (Port A)
-            bias_5    : out signed(31 downto 0);   -- Bias from ROM_2 (Port A)
-
-            weights_6 : out kernel_array(0 to 24); -- Weights from ROM_2 (Port B)
-            bias_6    : out signed(31 downto 0)    -- Bias from ROM_2 (Port B)
+            weights_conv_2 : out weights_array(0 to 15);
+            bias_conv_2    : out bais_array(0 to 15)
         );
     end component;
 
@@ -111,14 +99,21 @@ architecture Behavioral of top is
             dina_layer_2  : in bram_data_array(0 to 5);
 
             addrb_layer_2 : in  address_array_layer_2(0 to 5);
-            doutb_layer_2 : out bram_data_array(0 to 5)
+            doutb_layer_2 : out bram_data_array(0 to 5);
+
+            wea_layer_3   : in wea_array(0 to 15);
+            addra_layer_3 : in std_logic_vector(6 downto 0);
+            dina_layer_3  : in bram_data_array(0 to 15);
+
+            addrb_layer_3 : in  address_array_layer_3(0 to 15);
+            doutb_layer_3 : out bram_data_array(0 to 15)
         );
     end component;
 
     component layer_1 is
         Port (
-            clka   : in  std_logic; -- Clock signal
-            --clkb   : in  std_logic;
+            clka : in std_logic;    -- Clock signal
+                                    --clkb   : in  std_logic;
             resetn : in  std_logic; -- Active-low reset signal
             start  : in  std_logic; -- Start signal to begin operation
             finish : out std_logic; -- finish signal for higher-level control
@@ -182,16 +177,25 @@ architecture Behavioral of top is
     signal addrb_layer_2 : address_array_layer_2(0 to 5);
     signal doutb_layer_2 : bram_data_array(0 to 5);
 
+    signal wea_layer_3   : wea_array(0 to 15);
+    signal addra_layer_3 : std_logic_vector(6 downto 0);
+    signal dina_layer_3  : bram_data_array(0 to 15);
+    signal addrb_layer_3 : address_array_layer_3(0 to 15);
+    signal doutb_layer_3 : bram_data_array(0 to 15);
+
     -- ROM Reader Signals
-    signal weights_layer_1 : weights_array(0 to 5);
-    signal bias_layer_1    : bais_array(0 to 5);
+    signal weights_conv_1 : weights_array(0 to 5);
+    signal bias_conv_1    : bais_array(0 to 5);
+    signal weights_conv_2 : weights_array(0 to 15);
+    signal bias_conv_2    : bais_array(0 to 15);
 
     -- IP Control Signals
     -- These signals control start and finish operations for various components
-    signal start_dma_interface : std_logic; -- Start signal for DMA interface
-    signal start_rom_reader    : std_logic; -- Start signal for ROM reader
-    signal start_layer_1       : std_logic; -- Start signal for Layer 1 processing
-    signal start_layer_2       : std_logic;
+    signal start_dma_interface     : std_logic; -- Start signal for DMA interface
+    signal start_rom_reader_conv_1 : std_logic; -- Start signal for ROM reader
+    signal start_rom_reader_conv_2 : std_logic; -- Start signal for ROM reader
+    signal start_layer_1           : std_logic; -- Start signal for Layer 1 processing
+    signal start_layer_2           : std_logic;
 
     signal finish_dma_interface : std_logic; -- Finish signal from DMA interface
     signal finish_rom_reader    : std_logic; -- Finish signal from ROM reader
@@ -234,18 +238,15 @@ begin
 
         -- ROM Reader: Loads weights and biases from ROM
         rom_reader_1 : rom_reader port map(
-            clk    => clk,               -- Clock
-            resetn => resetn,            -- Reset
-            start  => start_rom_reader,  -- Start signal for ROM reader
-            finish => finish_rom_reader, -- Finish signal from ROM reader
+            clk          => clk,                     -- Clock
+            resetn       => resetn,                  -- Reset
+            start_conv_1 => start_rom_reader_conv_1, -- Start signal for ROM reader
+            start_conv_2 => start_rom_reader_conv_2,
+            finish       => finish_rom_reader, -- Finish signal from ROM reader
 
             -- Outputs for weights and biases
-            weights_1 => weights_layer_1(0), bias_1 => bias_layer_1(0), -- Weights and bias for channel 1
-            weights_2 => weights_layer_1(1), bias_2 => bias_layer_1(1), -- Weights and bias for channel 2
-            weights_3 => weights_layer_1(2), bias_3 => bias_layer_1(2), -- Weights and bias for channel 3
-            weights_4 => weights_layer_1(3), bias_4 => bias_layer_1(3), -- Weights and bias for channel 4
-            weights_5 => weights_layer_1(4), bias_5 => bias_layer_1(4), -- Weights and bias for channel 5
-            weights_6 => weights_layer_1(5), bias_6 => bias_layer_1(5)  -- Weights and bias for channel 6
+            weights_conv_1 => weights_conv_1, bias_conv_1 => bias_conv_1, -- Weights and bias for channel 1
+            weights_conv_2 => weights_conv_2, bias_conv_2 => bias_conv_2  -- Weights and bias for channel 2
         );
 
         -- Memory Controller: Manages BRAM for origin and predict images
@@ -270,7 +271,13 @@ begin
             addra_layer_2 => addra_layer_2, -- Write address for predict BRAM
             dina_layer_2  => dina_layer_2,  -- Data input for predict BRAM
             addrb_layer_2 => addrb_layer_2, -- Read address for predict BRAM
-            doutb_layer_2 => doutb_layer_2  -- Data output from predict BRAM
+            doutb_layer_2 => doutb_layer_2, -- Data output from predict BRAM
+
+            wea_layer_3   => wea_layer_3,   -- Write enable for predict BRAM
+            addra_layer_3 => addra_layer_3, -- Write address for predict BRAM
+            dina_layer_3  => dina_layer_3,  -- Data input for predict BRAM
+            addrb_layer_3 => addrb_layer_3, -- Read address for predict BRAM
+            doutb_layer_3 => doutb_layer_3  -- Data output from predict BRAM
         );
 
         -- Processing Layer 1: Performs convolution operation on the data
@@ -281,7 +288,7 @@ begin
             finish => finish_layer_1, -- Finish signal from Layer 1
 
             -- Weights and biases for convolution
-            weights => weights_layer_1, bias => bias_layer_1, -- Weights and bias for channel 1
+            weights => weights_conv_1, bias => bias_conv_1, -- Weights and bias for channel 1
 
             -- Predict image BRAM write connections
             wea_layer_1   => wea_layer_1,   -- Write enable for predict BRAM
@@ -312,7 +319,8 @@ begin
         if resetn = '0' then
             -- Reset all control signals
             start_dma_interface          <= '0';
-            start_rom_reader             <= '0';
+            start_rom_reader_conv_1      <= '0';
+            start_rom_reader_conv_2      <= '0';
             start_layer_1                <= '0';
             finish_dma_interface_latched <= '0';
             finish_rom_reader_latched    <= '0';
@@ -324,14 +332,14 @@ begin
                     mode_dma                     <= '0'; -- Read mode
                     finish_dma_interface_latched <= '0';
                     finish_rom_reader_latched    <= '0';
-                    start_dma_interface <= '1';
-                    start_rom_reader    <= '1';
-                    state               <= WAIT_INPUT_READ;
+                    start_dma_interface          <= '1';
+                    start_rom_reader_conv_1      <= '1';
+                    state                        <= WAIT_INPUT_READ;
 
                 when WAIT_INPUT_READ =>
                     -- Wait for DMA and ROM reader to finish
-                    start_dma_interface <= '0';
-                    start_rom_reader    <= '0';
+                    start_dma_interface     <= '0';
+                    start_rom_reader_conv_1 <= '0';
 
                     if finish_dma_interface = '1' then
                         finish_dma_interface_latched <= '1';
@@ -342,14 +350,18 @@ begin
                     end if;
 
                     if finish_dma_interface_latched = '1' and finish_rom_reader_latched = '1' then
-                        mode_dma      <= '1'; -- Send mode
-                        start_layer_1 <= '1'; -- Start Layer 1 computation
-                        state         <= LAYER_1_PROC;
+                        mode_dma                <= '1'; -- Send mode
+                        start_layer_1           <= '1'; -- Start Layer 1 computation
+                        start_rom_reader_conv_2 <= '1';
+                        state                   <= LAYER_1_PROC;
                     end if;
 
                 when LAYER_1_PROC =>
                     -- Wait for Layer 1 to finish computation
-                    start_layer_1 <= '0';
+                    start_layer_1           <= '0';
+                    start_rom_reader_conv_2 <= '0';
+
+                    --todo: add finish latch for conv2 rom reader (need to check if needed)
 
                     if finish_layer_1 = '1' then
                         start_layer_2 <= '1';

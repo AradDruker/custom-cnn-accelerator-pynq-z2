@@ -4,7 +4,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 library xil_defaultlib;
 use xil_defaultlib.types_package.all;
-use xil_defaultlib.FindKernelNeighborsPkg.all;
+use xil_defaultlib.FindConvKernel.all;
 
 -- Entity declaration for layer_1
 -- This module performs convolution operations by reading data from BRAM,
@@ -44,7 +44,7 @@ architecture Behavioral of layer_1 is
 
     -- Component declaration for bram_reader
     -- Reads a 5x5 neighborhood from the origin image BRAM based on the input address array
-    component bram_reader is
+    component bram_reader_5x5 is
         Port (
             clka   : in  std_logic; -- Clock signal
             resetn : in  std_logic; -- Active-low reset signal
@@ -115,7 +115,7 @@ begin
 
         -- Instantiation of bram_reader
         -- This module reads a 5x5 kernel from the origin image BRAM
-        bram_reader_0 : bram_reader port map(
+        bram_reader_0 : bram_reader_5x5 port map(
             clka               => clka,
             resetn             => resetn,
             start              => start_bram_reader,

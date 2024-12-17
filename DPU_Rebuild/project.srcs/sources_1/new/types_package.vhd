@@ -11,6 +11,7 @@ package types_package is
     -- The range is flexible (defined when a variable of this type is declared).
     type address_array_layer_1 is array (natural range <>) of std_logic_vector(9 downto 0);
     type address_array_layer_2 is array (natural range <>) of std_logic_vector(7 downto 0);
+    type address_array_layer_3 is array (natural range <>) of std_logic_vector(6 downto 0);
 
 
     -- Kernel Array Type:
