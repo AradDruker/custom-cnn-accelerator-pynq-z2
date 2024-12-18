@@ -18,13 +18,14 @@ package types_package is
     -- Used to represent an array of signed 8-bit weights, typically for kernels in convolution operations.
     -- The range is flexible (defined when a variable of this type is declared).
     type kernel_array is array (natural range <>) of signed(7 downto 0);
-
+    type signed_data_array is array (natural range <>) of kernel_array(0 to 24);
     -- Data Array Type:
     -- Used to represent an array of unsigned 8-bit data values.
     -- Commonly used for pixel data or other unsigned numerical representations.
     -- The range is flexible (defined when a variable of this type is declared).
     type data_array is array (natural range <>) of unsigned(7 downto 0);
-    type data_array_array is array (natural range <>) of data_array(0 to 3);
+    type data_array_pool1 is array (natural range <>) of data_array(0 to 3);
+    type data_array_conv2 is array (natural range <>) of data_array(0 to 24);
 
     --bram
     type wea_array is array (natural range <>) of std_logic_vector(0 downto 0);
@@ -32,6 +33,7 @@ package types_package is
 
     --rom
     type weights_array is array (natural range <>) of kernel_array(0 to 24);
+    type weights_array_conv_2 is array (natural range <>) of weights_array(0 to 5);
     type bais_array is array (natural range <>) of signed(31 downto 0);
 
 

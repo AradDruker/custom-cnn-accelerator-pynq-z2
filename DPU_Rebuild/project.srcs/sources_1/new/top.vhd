@@ -36,7 +36,7 @@ architecture Behavioral of top is
             mode   : in  std_logic; -- Mode selector: '0' for write, '1' for send
 
             -- SEND state
-            addrb_output : out std_logic_vector(7 downto 0); -- Address for RAM read operation for DMA -
+            addrb_output : out std_logic_vector(6 downto 0); -- Address for RAM read operation for DMA -
             doutb_output : in  std_logic_vector(7 downto 0); -- Data read from RAM corresponding to addrb_output
 
             out_tready : in  std_logic;                    -- Ready signal for output stream
@@ -67,7 +67,7 @@ architecture Behavioral of top is
             weights_conv_1 : out weights_array(0 to 5);
             bias_conv_1    : out bais_array(0 to 5);
 
-            weights_conv_2 : out weights_array(0 to 15);
+            weights_conv_2 : out weights_array_conv_2(0 to 15);
             bias_conv_2    : out bais_array(0 to 15)
         );
     end component;
@@ -148,7 +148,26 @@ architecture Behavioral of top is
         );
     end component;
 
-    type state_type is (IDLE, WAIT_INPUT_READ, LAYER_1_PROC, LAYER_2_PROC, SEND);
+    component layer_3 is
+        Port (
+            clka   : in  std_logic; -- Clock signal
+            resetn : in  std_logic; -- Active-low reset signal
+            start  : in  std_logic; -- Start signal to begin operation
+            finish : out std_logic; -- finish signal for higher-level control
+
+            weights : in weights_array_conv_2(0 to 15); -- Kernel weights for convolution
+            bias    : in bais_array(0 to 15);    -- Bias to be added after convolution
+
+            wea_layer_3   : out wea_array(0 to 15);
+            addra_layer_3 : out std_logic_vector(6 downto 0);
+            dina_layer_3  : out bram_data_array(0 to 15);
+
+            addrb_layer_2 : out address_array_layer_2(0 to 5);
+            doutb_layer_2 : in  bram_data_array(0 to 5)
+        );
+    end component;
+
+    type state_type is (IDLE, WAIT_INPUT_READ, LAYER_1_PROC, LAYER_2_PROC, LAYER_3_PROC, SEND);
     signal state : state_type := IDLE;
 
     -- DMA Interface Signals
@@ -186,7 +205,7 @@ architecture Behavioral of top is
     -- ROM Reader Signals
     signal weights_conv_1 : weights_array(0 to 5);
     signal bias_conv_1    : bais_array(0 to 5);
-    signal weights_conv_2 : weights_array(0 to 15);
+    signal weights_conv_2 : weights_array_conv_2(0 to 15);
     signal bias_conv_2    : bais_array(0 to 15);
 
     -- IP Control Signals
@@ -196,11 +215,14 @@ architecture Behavioral of top is
     signal start_rom_reader_conv_2 : std_logic; -- Start signal for ROM reader
     signal start_layer_1           : std_logic; -- Start signal for Layer 1 processing
     signal start_layer_2           : std_logic;
+    signal start_layer_3           : std_logic;
 
     signal finish_dma_interface : std_logic; -- Finish signal from DMA interface
     signal finish_rom_reader    : std_logic; -- Finish signal from ROM reader
     signal finish_layer_1       : std_logic; -- Finish signal from Layer 1 processing
     signal finish_layer_2       : std_logic;
+    signal finish_layer_3       : std_logic;
+
     -- Latching Signals
     signal finish_dma_interface_latched : std_logic := '0'; -- Latched finish signal for DMA interface
     signal finish_rom_reader_latched    : std_logic := '0'; -- Latched finish signal for ROM reader
@@ -215,8 +237,8 @@ begin
             mode   => mode_dma,             -- DMA mode ('0' for read, '1' for send)
 
             -- BRAM connections for predict image  --debugging
-            addrb_output => addrb_layer_2(0), -- Read address for predict BRAM
-            doutb_output => doutb_layer_2(0), -- Data output from predict BRAM
+            addrb_output => addrb_layer_3(0), -- Read address for predict BRAM
+            doutb_output => doutb_layer_3(0), -- Data output from predict BRAM
 
             -- CPU -> DMA connections
             in_tready => s_axis_tready, -- Ready signal for input stream
@@ -313,6 +335,22 @@ begin
             addrb_layer_1 => addrb_layer_1, -- Read address for origin BRAM
             doutb_layer_1 => doutb_layer_1  -- Data output from origin BRAM
         );
+
+        layer_3_instance : layer_3 port map(
+            clka   => clk,            -- Clock
+            resetn => resetn,         -- Reset
+            start  => start_layer_3,  -- Start signal for Layer 1
+            finish => finish_layer_3, -- Finish signal from Layer 1
+
+            weights => weights_conv_2, bias => bias_conv_2, -- Weights and bias for channel 1
+
+            wea_layer_3   => wea_layer_3,   -- Write enable for predict BRAM
+            addra_layer_3 => addra_layer_3, -- Write address for predict BRAM
+            dina_layer_3  => dina_layer_3,  -- Data input for predict BRAM
+            addrb_layer_2 => addrb_layer_2, -- Read address for origin BRAM
+            doutb_layer_2 => doutb_layer_2  -- Data output from origin BRAM
+        );
+
     -- Control process for the top module
     process(clk, resetn)
     begin
@@ -322,6 +360,8 @@ begin
             start_rom_reader_conv_1      <= '0';
             start_rom_reader_conv_2      <= '0';
             start_layer_1                <= '0';
+            start_layer_2                <= '0';
+            start_layer_3                <= '0';
             finish_dma_interface_latched <= '0';
             finish_rom_reader_latched    <= '0';
 
@@ -350,10 +390,11 @@ begin
                     end if;
 
                     if finish_dma_interface_latched = '1' and finish_rom_reader_latched = '1' then
-                        mode_dma                <= '1'; -- Send mode
-                        start_layer_1           <= '1'; -- Start Layer 1 computation
-                        start_rom_reader_conv_2 <= '1';
-                        state                   <= LAYER_1_PROC;
+                        mode_dma                  <= '1'; -- Send mode
+                        start_layer_1             <= '1'; -- Start Layer 1 computation
+                        start_rom_reader_conv_2   <= '1';
+                        finish_rom_reader_latched <= '0';
+                        state                     <= LAYER_1_PROC;
                     end if;
 
                 when LAYER_1_PROC =>
@@ -361,8 +402,9 @@ begin
                     start_layer_1           <= '0';
                     start_rom_reader_conv_2 <= '0';
 
-                    --todo: add finish latch for conv2 rom reader (need to check if needed)
-
+                    if finish_rom_reader = '1' then
+                        finish_rom_reader_latched <= '1';
+                    end if;
                     if finish_layer_1 = '1' then
                         start_layer_2 <= '1';
                         state         <= LAYER_2_PROC;
@@ -371,10 +413,19 @@ begin
                 when LAYER_2_PROC =>
                     start_layer_2 <= '0';
 
-                    if finish_layer_2 = '1' then
+                    if finish_layer_2 = '1' and finish_rom_reader_latched = '1' then
+                        start_layer_3 <= '1';
+                        state         <= LAYER_3_PROC;
+                    end if;
+
+                when LAYER_3_PROC =>
+                    start_layer_3 <= '0';
+
+                    if finish_layer_3 = '1' then
                         start_dma_interface <= '1';
                         state               <= SEND;
                     end if;
+
 
                 when SEND =>
                     -- Transition back to IDLE after sending data

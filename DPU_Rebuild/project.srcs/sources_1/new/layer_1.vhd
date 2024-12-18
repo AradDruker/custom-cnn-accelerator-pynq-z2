@@ -4,7 +4,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 library xil_defaultlib;
 use xil_defaultlib.types_package.all;
-use xil_defaultlib.FindConvKernel.all;
+use xil_defaultlib.FindConv1Kernel.all;
 
 -- Entity declaration for layer_1
 -- This module performs convolution operations by reading data from BRAM,
@@ -44,17 +44,19 @@ architecture Behavioral of layer_1 is
 
     -- Component declaration for bram_reader
     -- Reads a 5x5 neighborhood from the origin image BRAM based on the input address array
-    component bram_reader_5x5 is
+    component bram_reader_conv1 is
         Port (
-            clka   : in  std_logic; -- Clock signal
-            resetn : in  std_logic; -- Active-low reset signal
-            start  : in  std_logic; -- Start signal for the bram_reader
-            finish : out std_logic; -- Finish signal indicating operation is complete
+            clka   : in std_logic; -- Clock signal
+            resetn : in std_logic; -- Active-low reset signal
 
-            r_address_array    : in  address_array_layer_1(0 to 24); -- Input array of addresses for 5x5 neighborhood
-            r_address          : out std_logic_vector(9 downto 0);   -- Current address sent to BRAM
-            data_in_bram       : in  std_logic_vector(7 downto 0);   -- Data input from BRAM
-            data_out_interface : out data_array(0 to 24)             -- Output array with 5x5 neighborhood data
+            start  : in  std_logic; -- Start signal to initiate reading
+            finish : out std_logic; -- Output signal indicating the operation is done
+
+            r_address_array : in  address_array_layer_1(0 to 24); -- Input array of addresses to read from BRAM
+            r_address       : out std_logic_vector(9 downto 0);   -- Current address sent to BRAM
+
+            data_in_bram       : in  std_logic_vector(7 downto 0); -- Data read from BRAM
+            data_out_interface : out data_array(0 to 24)           -- Processed data output array
         );
     end component;
 
@@ -115,15 +117,15 @@ begin
 
         -- Instantiation of bram_reader
         -- This module reads a 5x5 kernel from the origin image BRAM
-        bram_reader_0 : bram_reader_5x5 port map(
+        bram_reader_0 : bram_reader_conv1 port map(
             clka               => clka,
             resetn             => resetn,
             start              => start_bram_reader,
             finish             => finish_bram_reader,
             r_address_array    => r_address_array,
-            r_address          => addrb_origin,      -- Connect to origin BRAM read address
-            data_in_bram       => doutb_origin,      -- Data input from origin BRAM
-            data_out_interface => data_out_interface -- Output data from bram_reader
+            r_address          => addrb_origin,
+            data_in_bram       => doutb_origin,
+            data_out_interface => data_out_interface
         );
 
     channel : for i in 0 to 5 generate
@@ -166,7 +168,7 @@ begin
                     row                     := 0;
                     col                     := 1;
                     flag_last               <= '0';
-                    r_address_array         <= find_kernel_neighbors(0, 0, 28, 28);
+                    r_address_array         <= find_conv_1_kernel(0, 0);
                     r_address_array_delayed <= r_address_array;
                     if start = '1' and locked = '1' then
                         start_bram_reader <= '1';
@@ -176,7 +178,7 @@ begin
                 when FIRST_READ =>
                     start_bram_reader <= '0';
                     if finish_bram_reader = '1' then
-                        r_address_array         <= find_kernel_neighbors(0, 1, 28, 28);
+                        r_address_array         <= find_conv_1_kernel(0, 1);
                         r_address_array_delayed <= r_address_array;
                         addra_layer_1           <= r_address_array(12); -- Write central pixel address
                         data_compute            <= data_out_interface;
@@ -221,7 +223,7 @@ begin
                     end loop;
 
                     if finish_bram_reader_latch = '1' and finish_channel_latch = "111111" then
-                        r_address_array         <= find_kernel_neighbors(row, col, 28, 28);
+                        r_address_array         <= find_conv_1_kernel(row, col);
                         r_address_array_delayed <= r_address_array;
                         addra_layer_1           <= r_address_array(12); -- Write central pixel address
                         data_compute            <= data_out_interface;

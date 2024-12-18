@@ -12,7 +12,7 @@ entity dma_interface is
         mode: in std_logic;                             -- Mode selector: '0' for write, '1' for send
         
         -- SEND state
-        addrb_output: out std_logic_vector(7 downto 0); -- Address for RAM read operation for DMA -
+        addrb_output: out std_logic_vector(6 downto 0); -- Address for RAM read operation for DMA -
         doutb_output: in std_logic_vector(7 downto 0);  -- Data read from RAM corresponding to addrb_output
         
         out_tready: in std_logic;                       -- Ready signal for output stream
@@ -38,7 +38,7 @@ architecture Behavioral of dma_interface is
     signal state: state_type := IDLE;
     
     signal addra_internal: std_logic_vector(9 downto 0) := (others => '0'); -- Internal write address for RAM
-    signal addrb_output_internal: std_logic_vector(7 downto 0) := (others => '0'); -- Internal read address for RAM
+    signal addrb_output_internal: std_logic_vector(6 downto 0) := (others => '0'); -- Internal read address for RAM
  
 begin
 
@@ -50,7 +50,7 @@ begin
     
     -- Constant for the last address in RAM
     constant last_address_write: std_logic_vector(9 downto 0) := std_logic_vector(to_unsigned(783, 10));
-    constant last_address_send: std_logic_vector(7 downto 0) := std_logic_vector(to_unsigned(195, 8));
+    constant last_address_send: std_logic_vector(6 downto 0) := std_logic_vector(to_unsigned(99, 7));
     -- Variables for iteration and delay
     variable counter: integer range 0 to 2 := 0;
     variable first_write_flag: std_logic := '0';       -- Indicates the first write operation
@@ -126,7 +126,7 @@ begin
                                 state <= DONE;
                             else
                                 -- Increment address for next data
-                                addrb_output_internal <= std_logic_vector(to_unsigned(to_integer(unsigned(addrb_output_internal)) + 1, 8));
+                                addrb_output_internal <= std_logic_vector(to_unsigned(to_integer(unsigned(addrb_output_internal)) + 1, 7));
                                 counter := 0;
                             end if;
                         else

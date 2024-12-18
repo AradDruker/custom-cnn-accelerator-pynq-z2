@@ -38,7 +38,7 @@ architecture Behavioral of relu_conv_5x5 is
     signal weights_signal   : kernel_array(0 to 24);
 
     -- Normalize signals
-    constant scale              : float32               := to_float(0.0019096031845096618); --effective_scale/activation_scale
+    constant scale              : float32               := to_float(0.0018913120729848742); --effective_scale/activation_scale
     constant output_zero_point  : unsigned(31 downto 0) := to_unsigned(0, 32);
     constant input_zero_point   : unsigned(7 downto 0)  := to_unsigned(127, 8);
     constant weights_zero_point : signed(7 downto 0)    := to_signed(0, 8);
@@ -46,7 +46,7 @@ architecture Behavioral of relu_conv_5x5 is
     constant padding_address : std_logic_vector(9 downto 0) := std_logic_vector(to_unsigned(784, 10));
 
 begin
-    process(clkb, resetn, start)
+    process(clkb, resetn)
     begin
         if resetn = '0' then
             finish <= '0';
@@ -62,7 +62,7 @@ begin
                     index          <= 0;
                     sum            <= (others => '0');
                     weights_signal <= weights;
-                    if start = '1' and finish = '0' then
+                    if start = '1' then
                         state <= PREPROCESS;
                     end if;
 

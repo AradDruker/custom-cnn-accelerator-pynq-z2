@@ -13,7 +13,7 @@ entity bram_reader_2x2 is
 		start  : in  std_logic; -- Start signal to initiate reading
 		finish : out std_logic; -- Output signal indicating the operation is done
 
-		r_address_array : in  address_array_layer_1(0 to 3);        -- Input array of addresses to read from BRAM
+		r_address_array : in  address_array_layer_1(0 to 3); -- Input array of addresses to read from BRAM
 		r_address       : out address_array_layer_1(0 to 5); -- Current address sent to BRAM
 
 		data_in_bram    : in  bram_data_array(0 to 5); -- Data read from BRAM
@@ -36,7 +36,7 @@ begin
 
 		-- Internal variables to manage indices and counters
 		variable index   : integer range 0 to 3 := 0; -- Index to iterate through address array
-		variable counter : integer range 0 to 2  := 0; -- Counter to add delay between reads
+		variable counter : integer range 0 to 2 := 0; -- Counter to add delay between reads
 
 	begin
 		-- Reset condition: Initialize all outputs and variables
@@ -60,8 +60,8 @@ begin
 					if start = '1' then
 						for i in 0 to 5 loop
 							r_address(i) <= r_address_array(index); -- Set initial address	   
-						end loop;    
-						state     <= READ; 
+						end loop;
+						state <= READ;
 					end if;
 
 				when READ =>
@@ -77,11 +77,11 @@ begin
 						if index = 3 then  -- Check if all addresses are read
 							state <= DONE; -- Transition to DONE state
 						else
-							index     := index + 1;              -- Move to next address
+							index := index + 1; -- Move to next address
 							for i in 0 to 5 loop
 								r_address(i) <= r_address_array(index); -- Set initial address	   
-							end loop; 
-							counter   := 0;                      -- Reset counter
+							end loop;
+							counter := 0; -- Reset counter
 						end if;
 					else
 						counter := counter + 1; -- Increment counter

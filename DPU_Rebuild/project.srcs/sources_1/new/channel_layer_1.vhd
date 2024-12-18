@@ -23,7 +23,7 @@ entity channel_layer_1 is
 		wea          : out std_logic_vector(0 downto 0); -- Write enable signal for predict BRAM
 		dina_predict : out std_logic_vector(7 downto 0); -- Data to write into predict BRAM
 
-		image_slice     : in data_array(0 to 24);
+		image_slice             : in data_array(0 to 24);
 		r_address_array_delayed : in address_array_layer_1(0 to 24)
 	);
 end channel_layer_1;
@@ -52,19 +52,19 @@ architecture Behavioral of channel_layer_1 is
 
 	signal compute_output : std_logic_vector(7 downto 0);
 
-	signal start_relu_conv_5x5  : std_logic := '0';
-	signal finish_relu_conv_5x5 : std_logic := '0';
+	signal start_relu_conv1  : std_logic := '0';
+	signal finish_relu_conv1 : std_logic := '0';
 
-	signal counter                 : integer range 0 to 3 := 0;
-	signal flag                    : std_logic            := '0';
+	signal counter : integer range 0 to 3 := 0;
+	signal flag    : std_logic            := '0';
 
 begin
 
 		relu_conv_5x5_0 : relu_conv_5x5 port map(
 			clkb            => clkb,
 			resetn          => resetn,
-			start           => start_relu_conv_5x5,
-			finish          => finish_relu_conv_5x5,
+			start           => start_relu_conv1,
+			finish          => finish_relu_conv1,
 			weights         => weights,
 			bias            => bias,
 			pixels          => image_slice,
@@ -80,28 +80,27 @@ begin
 			finish  <= '0';
 			wea     <= "0";
 			counter <= 0;
-			flag <= '0';
+			flag    <= '0';
 
 		elsif rising_edge(clka) then
 			case state is
 				when IDLE =>
-					finish                  <= '0';
-					counter                 <= 0;
-					wea                     <= "0"; -- Disable writing initiall
+					finish  <= '0';
+					counter <= 0;
+					wea     <= "0"; -- Disable writing initiall
 					if start = '1' then
-						start_relu_conv_5x5 <= '1';
-						state               <= COMPUTE;
+						start_relu_conv1 <= '1';
+						state            <= COMPUTE;
 					end if;
-
 
 				when COMPUTE =>
 					if counter = 3 then
-						start_relu_conv_5x5 <= '0';
+						start_relu_conv1 <= '0';
 					else
 						counter <= counter + 1;
 					end if;
 
-					if finish_relu_conv_5x5 = '1' then
+					if finish_relu_conv1 = '1' then
 						wea          <= "1";
 						dina_predict <= compute_output;
 						state        <= DONE;
@@ -111,7 +110,7 @@ begin
 					finish  <= '1';
 					wea     <= "0"; -- Ensure no further writes
 					counter <= 0;
-					flag <= '0';
+					flag    <= '0';
 					state   <= IDLE;
 
 			end case;
