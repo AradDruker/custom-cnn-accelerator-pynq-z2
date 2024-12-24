@@ -55,7 +55,7 @@
     const sendToPynq = async () => {
       const imageData = canvas.toDataURL(); // Get image as Base64
       try {
-        const response = await fetch('http://<PYNQ_IP>:5000/upload', {
+        const response = await fetch('http://192.168.1.99:5000/upload', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
