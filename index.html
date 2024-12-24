@@ -53,8 +53,8 @@
       };
 
       const sendToPynq = async () => {
-        const imageData = canvas.toDataURL(); // Get image as Base64
-        console.log(imageData); // Log the data URL to verify it's correct
+        const imageData = canvas.toDataURL(); // Get the full image as Base64
+        console.log(imageData); // Debugging: Log the Base64 image data
         try {
           const response = await fetch("http://192.168.1.140:5000/upload", {
             method: "POST",
@@ -63,10 +63,16 @@
             },
             body: JSON.stringify({ image: imageData }),
           });
-          alert(await response.text());
+          const result = await response.json();
+          console.log(result); // Log the response
+          if (result.num_characters) {
+            alert(`Processed ${result.num_characters} characters.`);
+          } else {
+            alert("No characters detected or processed.");
+          }
         } catch (error) {
           console.error("Error:", error);
-          alert("Failed to send the image.");
+          alert("Failed to send the image. Please check the server.");
         }
       };
 
