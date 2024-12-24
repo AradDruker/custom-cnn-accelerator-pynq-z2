@@ -11,12 +11,6 @@ This project aims to design and implement a **Custom Deep Learning Processing Un
 - **Neural Network Acceleration**: Focused on efficient inference for the lightweight neural network LeNet-5.
 - **Support for Quantized Models**: Leveraging model quantization for reduced resource usage.
 
-## Goals
-
-1. Design a custom hardware module for matrix multiplication, convolution, and activation functions.
-2. Implement AXI-based communication for efficient data transfer between Python code running on the ARM processor and the FPGA.
-3. Evaluate the performance in terms of speedup and resource utilization compared to software-based implementations.
-
 ## Work in Progress
 
 The project is currently in development. The following components are under active implementation:
@@ -67,10 +61,6 @@ The project is currently in development. The following components are under acti
 - Efficient implementation of complex neural network layers within limited FPGA resources.
 - Achieving high throughput while maintaining low latency.
 - Debugging AXI communication and ensuring correct data transfer.
-
-## Future Enhancements
-
-- Support for additional neural network layers such as pooling and batch normalization.
 
 ---
 
