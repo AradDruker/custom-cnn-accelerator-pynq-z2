@@ -1,77 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Online Paint</title>
-  <style>
-    canvas {
-      border: 1px solid black;
-      display: block;
-      margin: auto;
-    }
-    .controls {
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <h1 style="text-align: center;">Online Paint</h1>
-  <div class="controls">
-    <button onclick="clearCanvas()">Clear</button>
-    <button onclick="sendToPynq()">Send to PYNQ</button>
-  </div>
-  <canvas id="paintCanvas" width="800" height="400"></canvas>
-  <script>
-    const canvas = document.getElementById('paintCanvas');
-    const ctx = canvas.getContext('2d');
-    let painting = false;
-
-    const startPosition = (e) => {
-      painting = true;
-      draw(e);
-    };
-
-    const endPosition = () => {
-      painting = false;
-      ctx.beginPath();
-    };
-
-    const draw = (e) => {
-      if (!painting) return;
-      ctx.lineWidth = 5;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = 'black';
-      ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
-    };
-
-    const clearCanvas = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    };
-
-    const sendToPynq = async () => {
-      const imageData = canvas.toDataURL(); // Get image as Base64
-      try {
-        const response = await fetch('http://192.168.1.140:5000/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ image: imageData }),
-        });
-        alert(await response.text());
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to send the image.');
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Online Paint</title>
+    <style>
+      canvas {
+        border: 1px solid black;
+        display: block;
+        margin: auto;
       }
-    };
+      .controls {
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="text-align: center">Online Paint</h1>
+    <div class="controls">
+      <button onclick="clearCanvas()">Clear</button>
+      <button onclick="sendToPynq()">Send to PYNQ</button>
+    </div>
+    <canvas id="paintCanvas" width="800" height="400"></canvas>
+    <script>
+      const canvas = document.getElementById("paintCanvas");
+      const ctx = canvas.getContext("2d");
+      let painting = false;
 
-    canvas.addEventListener('mousedown', startPosition);
-    canvas.addEventListener('mouseup', endPosition);
-    canvas.addEventListener('mousemove', draw);
-  </script>
-</body>
+      const startPosition = (e) => {
+        painting = true;
+        draw(e);
+      };
+
+      const endPosition = () => {
+        painting = false;
+        ctx.beginPath();
+      };
+
+      const draw = (e) => {
+        if (!painting) return;
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "black";
+        ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+      };
+
+      const clearCanvas = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      };
+
+      const sendToPynq = async () => {
+        const imageData = canvas.toDataURL(); // Get image as Base64
+        console.log(imageData); // Log the data URL to verify it's correct
+        try {
+          const response = await fetch("http://192.168.1.140:5000/upload", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ image: imageData }),
+          });
+          alert(await response.text());
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Failed to send the image.");
+        }
+      };
+
+      canvas.addEventListener("mousedown", startPosition);
+      canvas.addEventListener("mouseup", endPosition);
+      canvas.addEventListener("mousemove", draw);
+    </script>
+  </body>
 </html>
