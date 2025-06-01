@@ -27,7 +27,25 @@ The system achieves **sub‑second end‑to‑end latency** and exceeds its accu
 
 ---
 
-## 2 · Resource‑Utilisation Snapshot (post‑route)
+## 2 · CNN Architecture Overview
+
+![CNN flow](https://github.com/user-attachments/assets/8cc60e27-522d-4c58-bf37-56114e89f287)
+
+| Layer | Feature Map | Size | Kernel Size | Padding | Stride | Activation |
+|-------|-------------|------|-------------|---------|--------|------------|
+| Input | Image | 1 | 28×28 | 2×2 | – | – |
+| Convolution | 6 | 32×32 | 5×5 | – | 1 | ReLU |
+| Max Pooling | 6 | 14×14 | 2×2 | – | 2 | – |
+| Convolution | 16 | 10×10 | 5×5 | – | 1 | ReLU |
+| Max Pooling | 16 | 5×5 | 2×2 | – | 2 | – |
+| FC | – | 64 | – | – | 1 | ReLU |
+| Output FC | – | 30 | – | – | – | – |
+
+_All parameters are quantised to int8 and packed into on‑chip BRAM._
+
+---
+
+## 3 · Resource‑Utilisation Snapshot (post‑route)
 
 | Resource | Used | Z‑020 Total | Util. % |
 |----------|-----:|------------:|--------:|
@@ -38,7 +56,7 @@ The system achieves **sub‑second end‑to‑end latency** and exceeds its accu
 
 ---
 
-## 3 · Performance vs CPU Baseline
+## 4 · Performance vs CPU Baseline
 
 | Platform | Avg. Inference / glyph | Speed‑up |
 |----------|-----------------------:|---------:|
@@ -49,7 +67,7 @@ Dataset: 10 000 random MNIST‑style glyphs, Ethernet transfer + DMA included 
 
 ---
 
-## 4 · Key Lessons
+## 5 · Key Lessons
 
 * **Int8 quantisation** cut DSP usage by >30 % with negligible accuracy drop.  
 * Careful **clock‑rate / parallelism trade‑offs** (lower Fclk but more MAC duplicates) gave the best throughput per LUT.  
@@ -57,7 +75,7 @@ Dataset: 10 000 random MNIST‑style glyphs, Ethernet transfer + DMA included 
 
 ---
 
-## 5 · Acknowledgements
+## 6 · Acknowledgements
 
 Thanks to the EE department labs for hardware access and to Xilinx for the PYNQ platform.  
 Special gratitude to Dr. Joel Ratsaby for guidance.
