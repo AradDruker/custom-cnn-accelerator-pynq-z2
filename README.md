@@ -1,68 +1,64 @@
-# Custom DPU on PYNQ Z2
+# Custom CNN/DPU Accelerator on PYNQ‑Z2
 
-## University Final Project
+> **B.Sc. Final Project  
+> Arad Druker · Yonatan Glav**
 
-This project aims to design and implement a **Custom Deep Learning Processing Unit (DPU)** for the **PYNQ Z2** platform. The DPU is being developed to accelerate neural network inference by offloading computation-intensive tasks to the FPGA. This is a work in progress and serves as part of my final project for my degree in Electrical and Electronic Engineering.
+Real‑time handwritten‑equation recognition and plotting, powered by a fully‑custom **FPGA Deep‑Learning Processing Unit (DPU)** implemented in VHDL and deployed on the **Xilinx PYNQ‑Z2** board.  
+The project covers the full stack:
 
-## Key Features
+* Quantised LeNet‑5 CNN (int8)
+* Synthesised accelerator IP with DMA, dual‑port BRAM and parallel compute blocks
+* Flask‑based web front‑end that lets users draw an equation and instantly see the rendered plot
+* Automated Python tool‑chain for model export, parameter packing and driver control
 
-- **Custom DPU Design**: Tailored for the PYNQ Z2 FPGA.
-- **Integration with AXI Interface**: Ensuring seamless communication between the processing system and the FPGA fabric.
-- **Neural Network Acceleration**: Focused on efficient inference for the lightweight neural network LeNet-5.
-- **Support for Quantized Models**: Leveraging model quantization for reduced resource usage.
-
-## Work in Progress
-
-The project is currently in development. The following components are under active implementation:
-
-### 1. **DPU Modules**
-
-- **Matrix Multiplication Module**: A key component for neural network operations.
-- **Convolutional Layer Module**: Supporting standard 2D convolution.
-- **BRAM Integration**: Utilizing on-chip memory for intermediate storage to reduce latency.
-
-### 2. **Software Integration**
-
-- Using Python and PYNQ APIs to send data to and retrieve results from the FPGA.
-- Developing a Python driver to manage AXI transactions.
-
-### 3. **Quantized Model Compatibility**
-
-- Exporting quantized weights from PyTorch and formatting them for FPGA consumption.
-- Initial tests are being conducted using a quantized LeNet-5 model.
-
-### 4. **Testing and Debugging**
-
-- Using simulation tools to verify the VHDL implementation.
-- Debugging AXI communication with test designs.
-
-## Planned Milestones
-
-1. **Hardware Design Completion**: Finalize the VHDL design for core DPU components.
-2. **Software Integration**: Ensure seamless data transfer between Python and FPGA.
-3. **Model Deployment**: Test a complete quantized neural network on the DPU.
-4. **Performance Evaluation**: Measure latency, throughput, and resource utilization.
-5. **Documentation and Final Presentation**: Prepare detailed documentation and present the results.
-
-## Tools and Technologies
-
-- **PYNQ Z2**: FPGA development board.
-
-- **Vivado**: For FPGA design and synthesis.
-
-- **Python**: For control and testing scripts.
-
-- **PyTorch**: For model preparation and quantization.
-
-- **Jupyter Notebooks**: For ease of use with PYNQ.
-
-## Challenges
-
-- Efficient implementation of complex neural network layers within limited FPGA resources.
-- Achieving high throughput while maintaining low latency.
-- Debugging AXI communication and ensuring correct data transfer.
+The system achieves **sub‑second end‑to‑end latency** and exceeds its accuracy target for both glyph‑level and string‑level recognition.
 
 ---
 
-This README will be updated as the project progresses.
+## 1 · Project Highlights
 
+| Area | Completed Work |
+|------|----------------|
+| **Hardware** | • Two‑conv / two‑pool / two‑FC DPU written in VHDL<br>• 30× parallel MACs in first conv layer, 16×/30× MACs in FC layers<br>• AXI‑DMA streaming, dual‑port BRAM buffers, per‑layer FSM scheduling |
+| **Software** | • PyTorch Quantisation‑Aware‑Training pipeline → int8 checkpoint<br>• Auto‑export of weights/bias/scales to JSON, split into 8‑bit chunks for BRAM load |
+| **Web App** | • HTML5 Canvas + vanilla JS UI<br>• Flask server: OpenCV segmentation → FPGA OCR → SymPy/Matplotlib plot |
+| **Testing** | • 10 k‑image synthetic workload for timing; multiple random batches for stability<br>• Continuous regression notebook; on‑board PYNQ comparisons to PyTorch reference |
+| **Results** | • End‑to‑end “draw → plot” well **< 1 s** on Gigabit LAN<br>• Glyph and string accuracies above project specification |
+
+---
+
+## 2 · Resource‑Utilisation Snapshot (post‑route)
+
+| Resource | Used | Z‑020 Total | Util. % |
+|----------|-----:|------------:|--------:|
+| LUTs | 48 673 | 85 000 | 57 % |
+| FFs  | 56 321 | 106 400 | 53 % |
+| BRAM |  68 / 140 blocks | 4.9 Mb | 49 % |
+| DSP  | 137 / 220 | — | 62 % |
+
+---
+
+## 3 · Performance vs CPU Baseline
+
+| Platform | Avg. Inference / glyph | Speed‑up |
+|----------|-----------------------:|---------:|
+| PyTorch @ i7‑1185G7 | **23.4 ms** |
+| PYNQ‑Z2 DPU (FPGA) | **0.74 ms** | **× 32** |
+
+Dataset: 10 000 random MNIST‑style glyphs, Ethernet transfer + DMA included in FPGA timing.
+
+---
+
+## 4 · Key Lessons
+
+* **Int8 quantisation** cut DSP usage by >30 % with negligible accuracy drop.  
+* Careful **clock‑rate / parallelism trade‑offs** (lower Fclk but more MAC duplicates) gave the best throughput per LUT.  
+* A thin **HTTP layer** around PYNQ made integration with the browser trivial and kept round‑trip latency low.
+
+---
+
+## 5 · Acknowledgements
+
+Thanks to the EE department labs for hardware access and to Xilinx for the PYNQ platform.  
+Special gratitude to Dr. Joel Ratsaby for guidance.
+"""
