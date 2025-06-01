@@ -56,6 +56,8 @@ _All parameters are quantised to int8 and packed into on‑chip BRAM._
 | BRAM |  68 / 140 blocks | 4.9 Mb | 49 % |
 | DSP  | 137 / 220 | — | 62 % |
 
+![DPUblockDesign](https://github.com/user-attachments/assets/d105b2d0-2d0b-40f7-91d4-d8b131395fb0)
+
 ---
 
 ## 4 · Performance vs CPU Baseline
@@ -81,3 +83,5 @@ Dataset: 10 000 random MNIST‑style glyphs, Ethernet transfer + DMA included 
 
 Thanks to the EE department labs for hardware access and to Xilinx for the PYNQ platform.  
 Special gratitude to Dr. Joel Ratsaby for guidance.
+
+---
