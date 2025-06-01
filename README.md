@@ -1,4 +1,4 @@
-# Custom CNN/DPU Accelerator on PYNQ‑Z2
+# Custom DPU Accelerator on PYNQ‑Z2
 
 > **B.Sc. Final Project  
 > Arad Druker · Yonatan Glav**
