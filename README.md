@@ -13,6 +13,8 @@ The project covers the full stack:
 
 The system achieves **sub‑second end‑to‑end latency** and exceeds its accuracy target for both glyph‑level and string‑level recognition.
 
+![FullProjectFlow](https://github.com/user-attachments/assets/738dcc1d-f0c7-459c-8d2e-b25684aebafc)
+
 ---
 
 ## 1 · Project Highlights
