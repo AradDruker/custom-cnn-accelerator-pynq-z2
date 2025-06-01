@@ -61,4 +61,3 @@ Dataset: 10 000 random MNIST‑style glyphs, Ethernet transfer + DMA included 
 
 Thanks to the EE department labs for hardware access and to Xilinx for the PYNQ platform.  
 Special gratitude to Dr. Joel Ratsaby for guidance.
-"""
