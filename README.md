@@ -41,7 +41,7 @@ The system achieves **sub‑second end‑to‑end latency** and exceeds its accu
 | Convolution | 16 | 10×10 | 5×5 | – | 1 | ReLU |
 | Max Pooling | 16 | 5×5 | 2×2 | – | 2 | – |
 | FC | – | 64 | – | – | 1 | ReLU |
-| Output FC | – | 30 | – | – | – | – |
+| Output FC | – | 15 | – | – | – | – |
 
 _All parameters are quantised to int8 and packed into on‑chip BRAM._
 

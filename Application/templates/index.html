@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Project - Polynomial Math Equation Plotter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .server-status {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        #server-status-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .status-online {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-offline {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-unknown {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .processing-info {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+            font-size: 0.9em;
+        }
+        
+        #timing-info {
+            color: #555;
+            font-weight: bold;
+        }
+        
+        .feedback-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .feedback-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .feedback-correct {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .feedback-incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        #correction-input {
+            margin-top: 8px;
+        }
+        
+        #correct-equation {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 70%;
+        }
+        
+        #submit-correction-btn {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Final Project - Polynomial Math Equation Plotter</h1>
+        
+        <div class="debug-toggle">
+            <input type="checkbox" id="debug-toggle">
+            <label for="debug-toggle">Debug Mode</label>
+        </div>
+        
+        <div class="main-content">
+            <div class="left-column">
+                <div class="canvas-container">
+                    <canvas id="drawing-canvas" width="100%" height="200"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button id="clear-btn">Clear Canvas</button>
+                    <button id="undo-btn">Remove Last Stroke</button>
+                    <button id="process-btn">Process Equation</button>
+                </div>
+                
+                <div class="processing-info">
+                    <div id="timing-info">Processing time: -</div>
+                    
+                    <div id="recognition-feedback" style="display: none; margin-top: 8px;">
+                        <div>Was the recognition correct?</div>
+                        <div class="feedback-buttons">
+                            <button id="correct-btn" class="feedback-btn feedback-correct">Correct</button>
+                            <button id="incorrect-btn" class="feedback-btn feedback-incorrect">Incorrect</button>
+                        </div>
+                        
+                        <div id="correction-input" style="display: none; margin-top: 8px;">
+                            <input type="text" id="correct-equation" placeholder="Enter the equation you wrote">
+                            <button id="submit-correction-btn">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-column">
+                <div class="equation-box" id="equation-box">
+                    Draw an equation on the canvas and click "Process Equation"
+                </div>
+                
+                <div class="plot-container" id="plot-container">
+                    <div class="waiting-message">
+                        <p>The plot will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="debug-section" id="debug-section">
+            <h2>Debug Information</h2>
+            
+            <div class="debug-content">
+                <div class="debug-left">
+                    <h3>Character Images (28x28 pixels)</h3>
+                    <div class="char-images" id="char-images"></div>
+                </div>
+                
+                <div class="debug-right">
+                    <div class="mock-section">
+                        <div class="mock-toggle">
+                            <input type="checkbox" id="mock-toggle">
+                            <label for="mock-toggle">Mock Mode</label>
+                        </div>
+                        
+                        <div id="mock-settings" style="display: none;">
+                            <h3>Mock Response</h3>
+                            <input type="text" id="mock-equation" value="y = 4x + 2" placeholder="Enter equation (y = sin(x), v = 2t + 4, etc.)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification">
+        Feedback submitted successfully!
+    </div>
+    
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('drawing-canvas');
+        // Set canvas dimensions properly
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = 200;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000';
+        
+        // Processing time tracking
+        const timingInfo = document.getElementById('timing-info');
+        
+        // Fill canvas with white background initially
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Store the canvas state for undo functionality
+        let canvasStates = [];
+        let currentStroke = []; // Store points of the current stroke
+        
+        // Save the initial blank state
+        saveCanvasState();
+        
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        
+        // Debug mode toggle - starts off
+        const debugToggle = document.getElementById('debug-toggle');
+        const debugSection = document.getElementById('debug-section');
+        const mockToggle = document.getElementById('mock-toggle');
+        const mockSettings = document.getElementById('mock-settings');
+        
+        // Initial state - hidden debug section
+        debugSection.classList.toggle('visible', debugToggle.checked);
+        
+        // Debug toggle handler
+        debugToggle.addEventListener('change', function() {
+            debugSection.classList.toggle('visible', this.checked);
+            
+            // Don't auto-check mock when debug is enabled
+            // Let user control mock toggle independently
+        });
+        
+        // Mock mode toggle
+        mockToggle.addEventListener('change', function() {
+            mockSettings.style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // Function to save the current canvas state
+        function saveCanvasState() {
+            canvasStates.push(canvas.toDataURL());
+        }
+        
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+            // Start a new stroke
+            currentStroke = [{x: lastX, y: lastY}];
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+            // Add point to current stroke
+            currentStroke.push({x: lastX, y: lastY});
+        }
+        
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                // If we have a meaningful stroke (more than just a click), save the state
+                if (currentStroke.length > 1) {
+                    saveCanvasState();
+                }
+            }
+        }
+        
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        // Handle window resize to adjust canvas
+        window.addEventListener('resize', function() {
+            const prevData = canvas.toDataURL();
+            canvas.width = canvas.parentElement.clientWidth;
+            
+            // Fill with white background first
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = prevData;
+            
+            // Reset drawing context properties after resize
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#000';
+        });
+        
+        // Touch support
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        canvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            const mouseEvent = new MouseEvent('mouseup');
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        // Clear canvas
+        document.getElementById('clear-btn').addEventListener('click', function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Fill with white background after clearing
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Reset equation box to instruction
+            document.getElementById('equation-box').textContent = 'Draw an equation on the canvas and click "Process Equation"';
+            // Reset plot container to waiting message
+            document.getElementById('plot-container').innerHTML = `
+                <div class="waiting-message">
+                    <p>The plot will appear here</p>
+                </div>
+            `;
+            document.getElementById('char-images').innerHTML = '';
+            
+            // Reset timing info
+            timingInfo.textContent = 'Processing time: -';
+            
+            // Reset canvas states
+            canvasStates = [];
+            saveCanvasState(); // Save the blank state
+        });
+        
+        // Undo last stroke
+        document.getElementById('undo-btn').addEventListener('click', function() {
+            if (canvasStates.length > 1) {
+                // Remove the current state
+                canvasStates.pop();
+                // Get the previous state
+                const previousState = canvasStates[canvasStates.length - 1];
+                
+                // Load the previous state
+                const img = new Image();
+                img.onload = function() {
+                    // Clear and fill with white first
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    // Draw the previous state
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = previousState;
+            } else {
+                // If only the initial state is left, just clear to that state
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        });
+        
+        // Process equation
+        document.getElementById('process-btn').addEventListener('click', function() {
+            // Reset timing info and update status
+            timingInfo.textContent = 'Processing time: Calculating...';
+            const startTime = performance.now();
+            
+            // Hide feedback elements during processing
+            document.getElementById('recognition-feedback').style.display = 'none';
+            
+            // Get canvas data with white background
+            // First create a temporary canvas with white background
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Fill with white background
+            tempCtx.fillStyle = '#FFFFFF';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Draw the original canvas on top
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            // Get data from the temporary canvas
+            const imageData = tempCanvas.toDataURL('image/png');
+            
+            // Get mock state
+            const isMock = mockToggle.checked;
+            const mockEquation = document.getElementById('mock-equation').value;
+            
+            // Track current equation for feedback
+            let currentEquation = '';
+            
+            // Send to server
+            fetch('/process_equation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: imageData,
+                    mock: isMock,
+                    mockEquation: mockEquation
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Calculate and display processing time
+                const endTime = performance.now();
+                const processingTime = (endTime - startTime).toFixed(0);
+                timingInfo.textContent = `Processing time: ${processingTime} ms`;
+                
+                // Display equation in the equation box
+                document.getElementById('equation-box').textContent = data.equation;
+                currentEquation = data.equation;
+                
+                // Display plot
+                const plotContainer = document.getElementById('plot-container');
+                if (data.plot) {
+                    // Add timestamp to prevent caching and force image reload
+                    const timestamp = new Date().getTime();
+                    plotContainer.innerHTML = `<img src="${data.plot}?t=${timestamp}" alt="Plot" class="responsive-plot">`;
+                } else {
+                    plotContainer.innerHTML = '<div class="empty-plot">No plot available</div>';
+                }
+                
+                // Display character images in debug section
+                const charImagesContainer = document.getElementById('char-images');
+                charImagesContainer.innerHTML = '';
+                
+                if (data.debug_images && data.debug_images.length > 0) {
+                    data.debug_images.forEach(imgPath => {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'char-image-container';
+                        imgContainer.style.display = 'inline-block';
+                        imgContainer.style.margin = '5px';
+                        imgContainer.style.border = '1px solid #ccc';
+                        imgContainer.style.backgroundColor = '#fff';
+                        imgContainer.style.width = '100px';
+                        imgContainer.style.height = '100px';
+                        imgContainer.style.textAlign = 'center';
+                        imgContainer.style.position = 'relative';
+                        
+                        const img = document.createElement('img');
+                        img.src = imgPath + '?t=' + new Date().getTime(); // Prevent caching
+                        
+                        // Scale up the 28x28 images to fill the container
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.objectFit = 'contain';
+                        
+                        imgContainer.appendChild(img);
+                        charImagesContainer.appendChild(imgContainer);
+                    });
+                } else {
+                    charImagesContainer.innerHTML = '<div class="no-chars">No characters detected</div>';
+                }
+                
+                // Show feedback elements after successful processing
+                document.getElementById('recognition-feedback').style.display = 'block';
+                document.getElementById('correction-input').style.display = 'none';
+                document.getElementById('correct-equation').value = '';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error processing equation. See console for details.');
+                
+                // Update timing info on error
+                timingInfo.textContent = 'Processing time: Error';
+                
+                // Hide feedback on error
+                document.getElementById('recognition-feedback').style.display = 'none';
+            });
+        });
+        
+        // Feedback button handlers
+        document.getElementById('correct-btn').addEventListener('click', function() {
+            // Get the current recognized equation
+            const recognizedEquation = document.getElementById('equation-box').textContent;
+            
+            // Send feedback to server
+            sendFeedback(recognizedEquation, true);
+            
+            // Hide feedback after submitting
+            document.getElementById('recognition-feedback').style.display = 'none';
+        });
+        
+        document.getElementById('incorrect-btn').addEventListener('click', function() {
+            // Show correction input field
+            document.getElementById('correction-input').style.display = 'block';
+        });
+        
+        document.getElementById('submit-correction-btn').addEventListener('click', function() {
+            // Get the current recognized equation and user correction
+            const recognizedEquation = document.getElementById('equation-box').textContent;
+            const correctEquation = document.getElementById('correct-equation').value.trim();
+            
+            if (correctEquation) {
+                // Send feedback to server
+                sendFeedback(recognizedEquation, false, correctEquation);
+                
+                // Hide feedback after submitting
+                document.getElementById('recognition-feedback').style.display = 'none';
+                document.getElementById('correction-input').style.display = 'none';
+            } else {
+                alert('Please enter the correct equation');
+            }
+        });
+        
+        // Function to send feedback to the server
+        function sendFeedback(equation, isCorrect, correction = null) {
+            console.log(`Sending feedback: equation="${equation}", isCorrect=${isCorrect}, correction="${correction}"`);
+            
+            fetch('/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    recognized: equation,
+                    is_correct: isCorrect,
+                    correction: correction,
+                    timestamp: new Date().toISOString()
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Feedback submitted successfully:', data);
+                // Show notification
+                const notification = document.getElementById('notification');
+                notification.textContent = `Feedback submitted successfully! Current accuracy: ${data.current_accuracy}%`;
+                notification.className = 'notification show';
+                setTimeout(() => {
+                    notification.className = 'notification';
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error submitting feedback:', error);
+                // Show error notification
+                const notification = document.getElementById('notification');
+                notification.textContent = `Error submitting feedback: ${error.message}`;
+                notification.style.backgroundColor = '#dc3545';
+                notification.className = 'notification show';
+                setTimeout(() => {
+                    notification.className = 'notification';
+                    notification.style.backgroundColor = '#4CAF50';
+                }, 3000);
+            });
+        }
+    </script>
+</body>
+</html> 
