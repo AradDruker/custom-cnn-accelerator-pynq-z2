@@ -3,14 +3,16 @@ import cv2, numpy as np, base64, os, re, requests, json
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sympy import lambdify
+import sympy as sp
 from datetime import datetime
+from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
 
 app = Flask(__name__)
 
 # Configuration settings
 APP_CONFIG = {
     'send_images_to_endpoint': True,  # Set to False to disable sending images
-    'endpoint_url': "http://<IP>:5000/upload"  # Endpoint URL for sending images
+    'endpoint_url': "http://192.168.1.99:5000/upload"  # Endpoint URL for sending images
 }
 
 # Global variable to store the latest prediction from PYNQ
@@ -41,15 +43,11 @@ if not os.path.exists(FEEDBACK_FILE):
 def clear_debug_images():
     """Clear previous debug images from the static/debug_images directory"""
     debug_dir = 'static/debug_images'
-    # Skip .gitkeep or any other special files you might want to keep
-    files_to_keep = ['.gitkeep']
-    
+
     for filename in os.listdir(debug_dir):
-        if filename not in files_to_keep:
-            file_path = os.path.join(debug_dir, filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-                print(f"Deleted {file_path}")
+        file_path = os.path.join(debug_dir, filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
 
 def send_images_to_endpoint(image_paths, endpoint_url):
     try:
@@ -62,7 +60,7 @@ def send_images_to_endpoint(image_paths, endpoint_url):
         
         # Try to parse JSON response
         try:
-            return resp.json()
+            return resp.json() 
         except json.JSONDecodeError as je:
             # If we can't decode JSON, return the text content instead
             print(f"[CLIENT] Warning: Could not parse JSON response: {je}")
@@ -108,7 +106,6 @@ def process_equation():
     img_bytes = base64.b64decode(image_data)
     img_arr = np.frombuffer(img_bytes, np.uint8)
     img = cv2.imdecode(img_arr, cv2.IMREAD_GRAYSCALE)
-    print(f"[DEBUG] Decoded image - Type: {type(img)}, Shape: {img.shape if isinstance(img, np.ndarray) else 'None or not an array'}")
     
     # Save the original image for debugging
     cv2.imwrite('static/debug_images/original.png', img)
@@ -144,17 +141,14 @@ def process_equation():
         response_data = send_images_to_endpoint(debug_image_paths, endpoint_url)
         print(f"[CLIENT] API response: {response_data}")
     
-    # קביעת המשוואה
     if is_mock:
         equation = mock_equation
     elif LATEST_PREDICTION and not is_mock:
         # Use the stored prediction from the PYNQ device if available and mock is disabled
         equation = LATEST_PREDICTION
-        print(f"[SERVER] Using latest received prediction: {equation}")
         # Reset prediction after using it
         LATEST_PREDICTION = None
     elif response_data and 'text' in response_data:
-        # קיבלנו תשובה מה-FPGA/PyNQ
         equation = response_data['text']
         # Clean up possible formatting issues in the equation
         equation = equation.replace('\n', '').replace('\r', '').strip()
@@ -173,9 +167,6 @@ def process_equation():
     if char_positions and not is_mock and response_data:
         # If we have position data and a response from the recognition service
         equation = detect_and_apply_exponents(equation, char_positions)
-    
-    # Print the raw equation before processing
-    print(f"[DEBUG] Equation after exponent detection: {equation}")
     
     # Combine adjacent numbers that are separated by spaces (e.g., "3 4" -> "34")
     # Keep applying until no more changes (handles cases like "3 4 5" -> "345")
@@ -305,11 +296,7 @@ def extract_characters(img):
             if (is_small_bar_1 and is_small_bar_2 and 
                 horiz_overlap_percent > 0.3 and  # Reduced overlap requirement
                 widths_similar and stacked):
-                
-                # Debug - print info about merged equals sign components
-                print(f"[DEBUG] Merging equals sign components: {(x1,y1,w1,h1)} and {(x2,y2,w2,h2)}")
-                print(f"[DEBUG] Metrics: overlap={horiz_overlap_percent:.2f}, v_gap={vertical_gap}")
-                
+
                 # Merge into one component representing '='
                 x_merge = min(x1, x2)
                 y_merge = min(y1, y2)
@@ -418,7 +405,36 @@ def detect_and_apply_exponents(equation, char_positions):
         base_char = right_chars[i]
         base_pos = right_positions[i]
         j = i + 1
-        # Check if next char is superscript
+        # Special handling: if next char is '-', check the char after minus for superscript
+        if j < len(right_chars) and right_chars[j] == '-':
+            if j + 1 < len(right_chars):
+                exp_pos = right_positions[j + 1]
+                horiz_condition = exp_pos['left'] >= base_pos['left'] + base_pos['width'] * 0.3
+                vert_condition = exp_pos['bottom'] <= base_pos['top'] + base_pos['height'] * 0.6
+                if horiz_condition and vert_condition:
+                    # Start exponent group: minus + next char(s) at same height
+                    new_right.append(base_char)
+                    new_right.append('^')
+                    exp_group = ['-', right_chars[j + 1]]
+                    first_exp_bottom = exp_pos['bottom']
+                    k = j + 2
+                    while k < len(right_chars):
+                        next_exp_pos = right_positions[k]
+                        tolerance = max(8, int(base_pos['height'] * 0.3))
+                        if next_exp_pos['bottom'] <= first_exp_bottom + tolerance:
+                            exp_group.append(right_chars[k])
+                            k += 1
+                        else:
+                            break
+                    if len(exp_group) > 1:
+                        new_right.append('(')
+                        new_right.extend(exp_group)
+                        new_right.append(')')
+                    else:
+                        new_right.extend(exp_group)
+                    i = k
+                    continue
+        # Original logic for normal superscript
         if j < len(right_chars):
             exp_pos = right_positions[j]
             horiz_condition = exp_pos['left'] >= base_pos['left'] + base_pos['width'] * 0.3
@@ -437,7 +453,6 @@ def detect_and_apply_exponents(equation, char_positions):
                         j += 1
                     else:
                         break
-                # If more than one char, use parentheses
                 if len(exp_group) > 1:
                     new_right.append('(')
                     new_right.extend(exp_group)
@@ -452,8 +467,7 @@ def detect_and_apply_exponents(equation, char_positions):
     modified_right_side = ''.join(new_right)
     modified_equation = left_side + "=" + modified_right_side
     modified_equation = re.sub(r'([^=])=([^=])', r'\1 = \2', modified_equation)
-    print(f"[DEBUG] Original equation: {equation}")
-    print(f"[DEBUG] Modified with exponents: {modified_equation}")
+
     return modified_equation
 
 def generate_plot(equation):
@@ -471,9 +485,7 @@ def generate_plot(equation):
         
         left_side = parts[0].strip()
         right_side = parts[1].strip()
-        
-        print(f"Parsed equation - Left side: {left_side}, Right side: {right_side}")
-        
+                
         # Determine the variable names
         # Left side is the dependent variable (y-axis)
         y_var = left_side if len(left_side) == 1 else 'y'  # Use single letter variable or default to 'y'
@@ -481,9 +493,7 @@ def generate_plot(equation):
         # Determine independent variable (x-axis) from the right side
         # Default to 'x' if we can't find another variable
         x_var = 'x'
-        
-        print(f"Using variables: {y_var} (y-axis) and {x_var} (x-axis)")
-        
+                
         # Try direct numerical evaluation for non-pi constants
         if x_var not in right_side:
             try:
@@ -525,99 +535,79 @@ def generate_plot(equation):
     # If we reach here, plotting failed
     return None
 
+def contains_x_pow_nonint(expr, x_var):
+    # Recursively check if any Pow node has x as the base and a non-integer or variable exponent
+    if isinstance(expr, sp.Pow):
+        base, exp = expr.args
+        if base == sp.Symbol(x_var):
+            # If exponent is a constant integer (Python int, float with integer value, or SymPy Integer)
+            if (
+                isinstance(exp, int)
+                or (isinstance(exp, float) and exp.is_integer())
+                or (hasattr(exp, 'is_integer') and exp.is_integer and exp.is_number)
+            ):
+                return False
+            else:
+                return True
+    for arg in getattr(expr, 'args', []):
+        if contains_x_pow_nonint(arg, x_var):
+            return True
+    return False
+
 def plot_with_sympy(equation, display_equation, x_var, y_var):
     """
     Helper function to handle plotting with sympy for non-constant expressions
     Sets x-range based on the mathematical domain of the expression.
-    Plots only where the function is real and finite, like Desmos.
+    Plots only where the function is real and finite.
     """
-    import sympy as sp
     try:
-        print(f"Using sympy to plot equation: {equation}")
         # Split equation by equals sign
         parts = equation.split('=')
         right_side = parts[1].strip()
-        right_side_normalized = right_side
-        if not '*' in right_side_normalized and x_var in right_side_normalized:
-            right_side_normalized = re.sub(r'(\d+)([a-zA-Z])', r'\1*\2', right_side_normalized)
-        right_side_normalized = right_side_normalized.replace('^', '**')
-        print(f"Normalized right side: {right_side_normalized}")
+        # Ensure negative exponents (including -3x, -2.5x, -x, etc.) are wrapped in parentheses
+        right_side = re.sub(r'(\^|\*\*)\s*(-[a-zA-Z0-9.]+)', r'\1(\2)', right_side)
+        right_side_normalized = right_side.replace('^', '**')
         sym_var = sp.symbols(x_var)
-        expr_str = right_side_normalized.replace('pi', 'sp.pi')
-        print(f"Sympy expression string: {expr_str}")
-        local_dict = {"sp": sp, x_var: sym_var}
-        expr = eval(expr_str, {"__builtins__": {}}, local_dict)
-        print(f"Evaluated expression: {expr}")
-
-        def get_x_domain(expr, x_var):
-            x = sp.symbols(x_var)
-            if isinstance(expr, sp.Pow):
-                base, exp = expr.args
-                # x^const
-                if base == x:
-                    if exp.is_Integer:
-                        if exp < 0:
-                            # Negative integer exponent: skip x=0, allow negative x for odd exponents
-                            if exp % 2 == 1 or exp % 2 == -1:
-                                return ((-2, -1e-3), (1e-3, 2))  # skip x=0, allow both sides
-                            else:
-                                return ((1e-3, 2),)
-                        else:
-                            # Positive integer exponent: allow all x
-                            return ((-2, 2),)
-                    else:
-                        # Not integer exponent: restrict to x > 0
-                        return ((1e-3, 2),)
-                # const^x or (expr)^x
-                elif exp == x:
-                    return ((-2, 2),)
-                # (x+...)^const
-                elif base.has(x) and exp.is_Number:
-                    if exp.is_integer:
-                        return ((-2, 2),)
-                    else:
-                        return ((1e-3, 2),)
-                # (x+...)^(x+...)
-                elif base.has(x) and exp.has(x):
-                    return ((1e-3, 2),)
-            # If the expression is not a power, allow all x
-            return ((-2, 2),)
-
-        x_domains = get_x_domain(expr, x_var)
-        print(f"[DEBUG] Using x_domains: {x_domains}")
+        transformations = (standard_transformations + (implicit_multiplication_application,))
+        expr = parse_expr(right_side_normalized.replace('pi', 'sp.pi'), transformations=transformations, local_dict={"sp": sp, x_var: sym_var})
+        # Robustly restrict x domain if x is in the base of a power with non-integer exponent
+        restrict_positive_x = contains_x_pow_nonint(expr, x_var)
+        if restrict_positive_x:
+            x_vals = np.linspace(1e-3, 10, 1000)  # Wider positive domain
+        else:
+            x_vals = np.linspace(-10, 10, 1000)   # Wider full domain
+        f = lambdify(sym_var, expr, "numpy")
+        y_vals = f(x_vals)
+        y_vals = np.array(y_vals, dtype=np.complex128)
+        valid_indices = np.isfinite(y_vals) & (np.isreal(y_vals))
+        # Filter out extreme y-values for better visualization
+        y_abs_max = 1e4  # Threshold for extreme values
+        finite_indices = valid_indices & (np.abs(y_vals) < y_abs_max)
+        x_filtered = x_vals[finite_indices]
+        y_filtered = np.real(y_vals[finite_indices])
+        # Further filter out x very close to zero to avoid singularities
+        nonzero_indices = np.abs(x_filtered) > 1e-3
+        x_filtered = x_filtered[nonzero_indices]
+        y_filtered = y_filtered[nonzero_indices]
         plt.figure(figsize=(8, 6), dpi=100)
-        for x_range in x_domains:
-            x_vals = np.linspace(x_range[0], x_range[1], 1000)
-            f = lambdify(sym_var, expr, "numpy")
-            y_vals = f(x_vals)
-            y_vals = np.array(y_vals)
-            # Only plot where y is real and finite (like Desmos)
-            valid_indices = np.isfinite(y_vals) & (np.imag(y_vals) == 0)
-            x_filtered = x_vals[valid_indices]
-            y_filtered = np.real(y_vals[valid_indices])
-            plt.plot(x_filtered, y_filtered, 'b-', linewidth=2)
+        plt.plot(x_filtered, y_filtered, 'b-', linewidth=2)
         plt.axhline(y=0, color='k', linestyle='-', alpha=0.3)
         plt.axvline(x=0, color='k', linestyle='-', alpha=0.3)
         plt.grid(True, alpha=0.3)
         plt.xlabel(x_var)
         plt.ylabel(y_var)
-        # Set y-limits
-        all_y = []
-        for x_range in x_domains:
-            x_vals = np.linspace(x_range[0], x_range[1], 1000)
-            y_vals = f(x_vals)
-            y_vals = np.array(y_vals)
-            valid_indices = np.isfinite(y_vals) & (np.imag(y_vals) == 0)
-            all_y.append(np.real(y_vals[valid_indices]))
-        all_y = np.concatenate(all_y) if all_y else np.array([])
-        if len(all_y) > 0:
-            y_min = np.min(all_y)
-            y_max = np.max(all_y)
-            if y_max - y_min > 50:
-                plt.ylim([-10, 10])
-            else:
-                padding = (y_max - y_min) * 0.1
-                plt.ylim([y_min - padding, y_max + padding])
+        # Set x-limits with padding and clamping
+        if len(x_filtered) > 0:
+            x_min = np.min(x_filtered)
+            x_max = np.max(x_filtered)
+            x_left, x_right = smart_axis_limits(x_min, x_max)
+            plt.xlim([x_left, x_right])
+        # Set y-limits with padding and clamping
+        if len(y_filtered) > 0:
+            y_min = np.min(y_filtered)
+            y_max = np.max(y_filtered)
+            y_bottom, y_top = smart_axis_limits(y_min, y_max)
+            plt.ylim([y_bottom, y_top])
         plot_path = 'static/debug_images/plot.png'
         plt.savefig(plot_path, bbox_inches='tight', pad_inches=0.3)
         plt.close()
@@ -628,18 +618,30 @@ def plot_with_sympy(equation, display_equation, x_var, y_var):
         traceback.print_exc()
         return None
 
+def smart_axis_limits(min_val, max_val, min_limit=-10, max_limit=10, min_width=1):
+    # Clamp to reasonable limits
+    min_val = max(min_val, min_limit)
+    max_val = min(max_val, max_limit)
+    # Ensure minimum width
+    if max_val - min_val < min_width:
+        center = (max_val + min_val) / 2
+        min_val = center - min_width / 2
+        max_val = center + min_width / 2
+    # Add 10% padding
+    padding = (max_val - min_val) * 0.1
+    return min_val - padding, max_val + padding
+
 @app.route('/receive', methods=['POST'])
 def receive_prediction():
     """Endpoint for receiving prediction string from PYNQ"""
     global LATEST_PREDICTION
     try:
         data = request.get_json(force=True) or {}
-        print("[SERVER] Prediction arrived:", data)   # DEBUG
+        print("[SERVER] Prediction arrived:", data)
         
         # Store the prediction text in the global variable
         if 'text' in data:
             LATEST_PREDICTION = data['text'].strip()
-            print(f"[SERVER] Stored prediction: {LATEST_PREDICTION}")
         
         # If you want to save data['text'] or update UI - this is the place
         return jsonify({"ok": True})
@@ -717,4 +719,4 @@ def record_feedback():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    app.run(host='0.0.0.0', port=5000, debug=False) 
