@@ -16,10 +16,10 @@ entity bram_reader_fc2 is
 		bram_counter         : in  integer range 0 to 7;
 		r_address_index      : in  integer range 0 to 7;
 		r_address_activation : out address_array_layer_5(0 to 7);
-		r_address_weights    : out address_array_weights_fc2(0 to 29);
+		r_address_weights    : out address_array_weights_fc2(0 to 14);
 
-		data_in_bram_weights  : in  bram_data_array(0 to 29);
-		data_out_bram_weights : out kernel_array(0 to 29);
+		data_in_bram_weights  : in  bram_data_array(0 to 14);
+		data_out_bram_weights : out kernel_array(0 to 14);
 
 		data_in_bram_activation  : in  bram_data_array(0 to 7); -- Data read from BRAM
 		data_out_bram_activation : out unsigned(7 downto 0)
@@ -52,7 +52,7 @@ begin
 					if start = '1' then
 						r_address_activation(bram_counter) <= std_logic_vector(to_unsigned(r_address_index,r_address_activation(r_address_index)'length));
 
-						for i in 0 to 29 loop
+						for i in 0 to 14 loop
 							r_address_weights(i) <= std_logic_vector(to_unsigned((r_address_index + bram_counter * 8),r_address_weights(i)'length)); -- Set initial address	   
 						end loop;
 						state <= READ; -- Transition to READ state
@@ -62,7 +62,7 @@ begin
 					-- Read state: Perform data read and increment the index
 					if counter = 2 then
 						data_out_bram_activation <= unsigned(data_in_bram_activation(bram_counter));
-						for i in 0 to 29 loop
+						for i in 0 to 14 loop
 							data_out_bram_weights(i) <= signed(data_in_bram_weights(i));
 						end loop;
 						state <= DONE; -- Transition to DONE state

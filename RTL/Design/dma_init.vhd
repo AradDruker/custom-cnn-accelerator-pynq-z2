@@ -30,10 +30,10 @@ entity dma_init is
 		dina_weights_fc1  : out bram_data_array(0 to 63);
 		bias_fc_1         : out bais_array(0 to 63);
 
-		wea_weights_fc2   : out wea_array(0 to 29);
+		wea_weights_fc2   : out wea_array(0 to 14);
 		addra_weights_fc2 : out std_logic_vector(5 downto 0);
-		dina_weights_fc2  : out bram_data_array(0 to 29);
-		bias_fc_2         : out bais_array(0 to 29);
+		dina_weights_fc2  : out bram_data_array(0 to 14);
+		bias_fc_2         : out bais_array(0 to 14);
 
 		scales            : out scale_array(0 to 3);
 		input_zero_point  : out integer range 0 to 255;

@@ -62,10 +62,10 @@ architecture Behavioral of top is
             dina_weights_fc1  : out bram_data_array(0 to 63);
             bias_fc_1         : out bais_array(0 to 63);
 
-            wea_weights_fc2   : out wea_array(0 to 29);
+            wea_weights_fc2   : out wea_array(0 to 14);
             addra_weights_fc2 : out std_logic_vector(5 downto 0);
-            dina_weights_fc2  : out bram_data_array(0 to 29);
-            bias_fc_2         : out bais_array(0 to 29);
+            dina_weights_fc2  : out bram_data_array(0 to 14);
+            bias_fc_2         : out bais_array(0 to 14);
 
             scales            : out scale_array(0 to 3);
             input_zero_point  : out integer range 0 to 255;
@@ -125,11 +125,11 @@ architecture Behavioral of top is
             addrb_weights_fc1 : in  std_logic_vector(8 downto 0);
             doutb_weights_fc1 : out bram_data_array(0 to 63);
 
-            wea_weights_fc2   : in  wea_array(0 to 29);
+            wea_weights_fc2   : in  wea_array(0 to 14);
             addra_weights_fc2 : in  std_logic_vector(5 downto 0);
-            dina_weights_fc2  : in  bram_data_array(0 to 29);
-            addrb_weights_fc2 : in  address_array_weights_fc2(0 to 29);
-            doutb_weights_fc2 : out bram_data_array(0 to 29);
+            dina_weights_fc2  : in  bram_data_array(0 to 14);
+            addrb_weights_fc2 : in  address_array_weights_fc2(0 to 14);
+            doutb_weights_fc2 : out bram_data_array(0 to 14);
 
             -- Origin image memory block:
             -- Port A (Write port)
@@ -299,10 +299,10 @@ architecture Behavioral of top is
             start  : in  std_logic; -- Start signal to begin operation
             finish : out std_logic; -- Indicates when operation is complete
 
-            bias : in bais_array(0 to 29); -- Bias to be added after convolution
+            bias : in bais_array(0 to 14); -- Bias to be added after convolution
 
-            addrb_weights_fc2 : out address_array_weights_fc2(0 to 29);
-            doutb_weights_fc2 : in  bram_data_array(0 to 29);
+            addrb_weights_fc2 : out address_array_weights_fc2(0 to 14);
+            doutb_weights_fc2 : in  bram_data_array(0 to 14);
 
             addrb_layer_5     : out address_array_layer_5(0 to 7);
             doutb_layer_5     : in  bram_data_array(0 to 7);
@@ -341,11 +341,11 @@ architecture Behavioral of top is
     signal addrb_weights_fc1 : std_logic_vector(8 downto 0);
     signal doutb_weights_fc1 : bram_data_array(0 to 63);
 
-    signal wea_weights_fc2   : wea_array(0 to 29);
+    signal wea_weights_fc2   : wea_array(0 to 14);
     signal addra_weights_fc2 : std_logic_vector(5 downto 0);
-    signal dina_weights_fc2  : bram_data_array(0 to 29);
-    signal addrb_weights_fc2 : address_array_weights_fc2(0 to 29);
-    signal doutb_weights_fc2 : bram_data_array(0 to 29);
+    signal dina_weights_fc2  : bram_data_array(0 to 14);
+    signal addrb_weights_fc2 : address_array_weights_fc2(0 to 14);
+    signal doutb_weights_fc2 : bram_data_array(0 to 14);
 
     signal scales            : scale_array(0 to 3);
     signal input_zero_point  : integer range 0 to 255;
@@ -403,7 +403,7 @@ architecture Behavioral of top is
     signal bias_conv_1    : bais_array(0 to 5);
     signal bias_conv_2    : bais_array(0 to 15);
     signal bias_fc_1      : bais_array(0 to 63);
-    signal bias_fc_2      : bais_array(0 to 29);
+    signal bias_fc_2      : bais_array(0 to 14);
 
     -- IP Control Signals
     -- These signals control start and finish operations for various components

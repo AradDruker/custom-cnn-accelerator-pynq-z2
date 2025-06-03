@@ -26,11 +26,11 @@ entity memory_controller is
         addrb_weights_fc1 : in  std_logic_vector(8 downto 0);
         doutb_weights_fc1 : out bram_data_array(0 to 63);
 
-        wea_weights_fc2   : in  wea_array(0 to 29);
+        wea_weights_fc2   : in  wea_array(0 to 14);
         addra_weights_fc2 : in  std_logic_vector(5 downto 0);
-        dina_weights_fc2  : in  bram_data_array(0 to 29);
-        addrb_weights_fc2 : in  address_array_weights_fc2(0 to 29);
-        doutb_weights_fc2 : out bram_data_array(0 to 29);
+        dina_weights_fc2  : in  bram_data_array(0 to 14);
+        addrb_weights_fc2 : in  address_array_weights_fc2(0 to 14);
+        doutb_weights_fc2 : out bram_data_array(0 to 14);
 
         -- Origin image memory block:
         -- Port A (Write port)
@@ -219,7 +219,7 @@ begin
             );
     end generate ram_weights_fc1;
 
-    ram_weights_fc2 : for i in 0 to 29 generate
+    ram_weights_fc2 : for i in 0 to 14 generate
             instance : blk_mem_gen_0 port map(
                 clka  => clka,
                 wea   => wea_weights_fc2(i),

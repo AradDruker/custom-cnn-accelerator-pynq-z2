@@ -16,10 +16,10 @@ entity layer_6 is
 		start  : in  std_logic; -- Start signal to begin operation
 		finish : out std_logic; -- Indicates when operation is complete
 
-		bias : in bais_array(0 to 29); -- Bias to be added after convolution
+		bias : in bais_array(0 to 14); -- Bias to be added after convolution
 
-		addrb_weights_fc2 : out address_array_weights_fc2(0 to 29);
-		doutb_weights_fc2 : in  bram_data_array(0 to 29);
+		addrb_weights_fc2 : out address_array_weights_fc2(0 to 14);
+		doutb_weights_fc2 : in  bram_data_array(0 to 14);
 
 		addrb_layer_5     : out address_array_layer_5(0 to 7);
 		doutb_layer_5     : in  bram_data_array(0 to 7);
@@ -41,10 +41,10 @@ architecture Behavioral of layer_6 is
 			bram_counter         : in  integer range 0 to 7;
 			r_address_index      : in  integer range 0 to 7;
 			r_address_activation : out address_array_layer_5(0 to 7);
-			r_address_weights    : out address_array_weights_fc2(0 to 29);
+			r_address_weights    : out address_array_weights_fc2(0 to 14);
 
-			data_in_bram_weights  : in  bram_data_array(0 to 29);
-			data_out_bram_weights : out kernel_array(0 to 29);
+			data_in_bram_weights  : in  bram_data_array(0 to 14);
+			data_out_bram_weights : out kernel_array(0 to 14);
 
 			data_in_bram_activation  : in  bram_data_array(0 to 7); -- Data read from BRAM
 			data_out_bram_activation : out unsigned(7 downto 0)
@@ -74,10 +74,10 @@ architecture Behavioral of layer_6 is
 	signal data_out_interface : unsigned(7 downto 0);
 	signal data_compute       : unsigned(7 downto 0);
 
-	signal weights_out_interface : kernel_array(0 to 29);
-	signal weights_compute       : kernel_array(0 to 29);
+	signal weights_out_interface : kernel_array(0 to 14);
+	signal weights_compute       : kernel_array(0 to 14);
 
-	signal compute_output : bram_data_array(0 to 29);
+	signal compute_output : bram_data_array(0 to 14);
 
 	signal bram_counter    : integer range 0 to 7 := 0;
 	signal r_address_index : integer range 0 to 7 := 0;
@@ -87,10 +87,10 @@ architecture Behavioral of layer_6 is
 
 	signal start_channel : std_logic := '0';
 
-	signal finish_channel : finish_channel_array(0 to 29);
-	constant ALL_ONES_30  : std_logic_vector(29 downto 0) := (others => '1');
+	signal finish_channel : finish_channel_array(0 to 14);
+	constant ALL_ONES_30  : std_logic_vector(14 downto 0) := (others => '1');
 
-	signal finish_channel_latch     : std_logic_vector(29 downto 0) := (others => '0');
+	signal finish_channel_latch     : std_logic_vector(14 downto 0) := (others => '0');
 	signal finish_bram_reader_latch : std_logic                     := '0';
 
 	signal flag_last : std_logic := '0';
@@ -117,7 +117,7 @@ begin
 			data_out_bram_activation => data_out_interface
 		);
 
-	channel : for i in 0 to 29 generate
+	channel : for i in 0 to 14 generate
 			instance : channel_layer_6 port map(
 				clka              => clkb,
 				resetn            => resetn,
@@ -197,7 +197,7 @@ begin
 						finish_bram_reader_latch <= '1';
 					end if;
 
-					for i in 0 to 29 loop
+					for i in 0 to 14 loop
 						if finish_channel(i) = '1' then
 							finish_channel_latch(i) <= '1';
 						end if;
@@ -230,7 +230,7 @@ begin
 						counter <= '1';
 					end if;
 
-					for i in 0 to 29 loop
+					for i in 0 to 14 loop
 						if finish_channel(i) = '1' then
 							finish_channel_latch(i) <= '1';
 						end if;
