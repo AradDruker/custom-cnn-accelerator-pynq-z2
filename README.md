@@ -62,10 +62,10 @@ _All parameters are quantised to int8 and packed into on‑chip BRAM._
 
 ## 4 · Performance vs CPU Baseline
 
-| Platform | Avg. Inference / glyph | Clock Cycles | Speed‑up |
-|----------|-----------------------:|-------------:|---------:|
-| PyTorch @ 13th intel Gen i5-13500H | **1.71 ms** | 5 813 953 | **× 2.2** |
-| DPU @ PYNQ‑Z2 Zynq-7000| **0.77 ms** | 77 300 | **× 75.21** |
+| Platform | Avg. Inference / glyph | Clock Cycles |
+|----------|-----------------------:|-------------:|
+| PyTorch @ 13th intel Gen i5-13500H | **1.71 ms** | 5 813 953 |
+| DPU @ PYNQ‑Z2 Zynq-7000| **0.77 ms** | 77 300 |
 
 Dataset: 10 000+ random MNIST‑style glyphs, Ethernet transfer + DMA included in FPGA timing.
 
