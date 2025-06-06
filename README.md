@@ -44,6 +44,7 @@ The system achieves **sub‑second end‑to‑end latency** and exceeds its accu
 | Output FC | – | 15 | – | – | – | – |
 
 _All parameters are quantised to int8 and packed into on‑chip BRAM._
+_Dataset: 10 000+ random MNIST‑style glyphs_
 
 ---
 
@@ -67,7 +68,8 @@ _All parameters are quantised to int8 and packed into on‑chip BRAM._
 | PyTorch @ 13th intel Gen i5-13500H | **1.71 ms** | 5 813 953 |
 | DPU @ PYNQ‑Z2 Zynq-7000| **0.77 ms** | 77 300 |
 
-Dataset: 10 000+ random MNIST‑style glyphs, Ethernet transfer + DMA included in FPGA timing.
+
+Ethernet transfer + DMA not included in FPGA timing measurement (Only inference time of the CNN).
 
 ---
 
