@@ -53,7 +53,7 @@ begin
 
 					if start = '1' then
 						r_address_activation(bram_counter) <= std_logic_vector(to_unsigned(r_address_index,r_address_activation(r_address_index)'length));
-						r_address_weights <= std_logic_vector(to_unsigned((r_address_index + bram_counter * 25),r_address_weights'length)); -- Set initial address	   s
+						r_address_weights <= std_logic_vector(to_unsigned((r_address_index + bram_counter * 25),r_address_weights'length)); -- Set initial address
 						state <= READ; -- Transition to READ state
 					end if;
 

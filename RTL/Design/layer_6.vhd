@@ -88,7 +88,7 @@ architecture Behavioral of layer_6 is
 	signal start_channel : std_logic := '0';
 
 	signal finish_channel : finish_channel_array(0 to 14);
-	constant ALL_ONES_30  : std_logic_vector(14 downto 0) := (others => '1');
+	constant ALL_ONES_15  : std_logic_vector(14 downto 0) := (others => '1');
 
 	signal finish_channel_latch     : std_logic_vector(14 downto 0) := (others => '0');
 	signal finish_bram_reader_latch : std_logic                     := '0';
@@ -135,7 +135,7 @@ begin
 	process(clka, resetn)
 
 		variable first_write_flag : std_logic                    := '0';
-		variable index            : integer range 0 to 30        := 0;
+		variable index            : integer range 0 to 15        := 0;
 		variable max_val          : unsigned(7 downto 0)         := (others => '0');
 		variable max_index        : std_logic_vector(7 downto 0) := (others => '0');
 
@@ -203,7 +203,7 @@ begin
 						end if;
 					end loop;
 
-					if finish_bram_reader_latch = '1' and finish_channel_latch = ALL_ONES_30 then
+					if finish_bram_reader_latch = '1' and finish_channel_latch = 15 then
 						counter <= '0';
 						if bram_counter < 7 and r_address_index = 7 then
 							bram_counter    <= bram_counter + 1;
@@ -236,18 +236,18 @@ begin
 						end if;
 					end loop;
 
-					if finish_channel_latch = ALL_ONES_30 then
+					if finish_channel_latch = ALL_ONES_15 then
 						state <= POST_PROCESS;
 					end if;
 
 				when POST_PROCESS =>
-					if index < 30 then
+					if index < 15 then
 						if unsigned(compute_output(index)) > max_val then
 							max_val   := unsigned(compute_output(index));
 							max_index := std_logic_vector(to_unsigned(index, 8));
 						end if;
 						index := index + 1;
-					elsif index = 30 then
+					elsif index = 15 then
 						final_predict <= max_index;
 						index         := 0;
 						state         <= DONE;
