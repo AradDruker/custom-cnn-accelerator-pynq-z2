@@ -44,7 +44,8 @@ The system achieves **sub‑second end‑to‑end latency** and exceeds its accu
 | Output FC | – | 15 | – | – | – | – |
 
 _All parameters are quantised to int8 and packed into on‑chip BRAM._
-_Dataset: 10 000+ random MNIST‑style glyphs_
+
+Dataset: 10 000+ random MNIST‑style glyphs
 
 ---
 
