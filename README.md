@@ -51,7 +51,7 @@ Dataset: 10 000+ random MNIST‑style glyphs
 
 ## 3 · Resource‑Utilisation Snapshot (post‑route)
 
-| Resource | Used | Z‑020 Total | Util. % |
+| Resource | Used | Z‑7020 Total | Util. % |
 |----------|-----:|------------:|--------:|
 | LUTs | 33 268 | 53 200 | 63% |
 | FFs  | 53 680 | 106 400 | 51 % |
